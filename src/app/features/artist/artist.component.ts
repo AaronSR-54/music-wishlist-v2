@@ -339,7 +339,7 @@ import { SuperuserService } from '../../core/superuser/superuser.service';
                 (click)="exportAllReleases()"
               >
                 <app-icon name="link" class="w-3.5 h-3.5 opacity-60" />
-                {{ t().exportAll }} ({{ allReleasesForExport().length }})
+                {{ t().exportAll }}
               </button>
             </div>
           }

@@ -142,7 +142,6 @@ type WishlistTab = 'pending' | 'downloaded';
             >
               <app-icon name="link" class="w-3.5 h-3.5 opacity-60" />
               {{ t().exportWishlist }}
-              <span class="ml-1 px-1.5 py-0.5 rounded-full bg-ink/5 dark:bg-bone/10 text-[10px] font-mono">{{ activeEntries().length }}</span>
             </button>
           </div>
         }
@@ -154,7 +153,7 @@ type WishlistTab = 'pending' | 'downloaded';
               (click)="openClearModal()"
             >
               <app-icon name="trash" class="w-3.5 h-3.5 opacity-60" />
-              {{ t().clearWishlist }} ({{ activeEntries().length }})
+              {{ t().clearWishlist }}
             </button>
           </div>
         }
