@@ -133,33 +133,32 @@ type WishlistTab = 'pending' | 'downloaded';
             "
           />
         }
+
+        @if (superuser.enabled() && activeTab() === 'pending' && activeEntries().length > 0) {
+          <div class="pt-6 pb-2 px-2 [animation:fadeIn_300ms_ease_both]">
+            <button
+              class="w-full flex items-center justify-center gap-2 py-2.5 px-5 rounded-full border border-ink-200 dark:border-bone-700 bg-transparent text-ink-600 dark:text-bone-600 font-medium uppercase text-xs tracking-wide hover:bg-ink hover:text-bone dark:hover:bg-bone dark:hover:text-ink hover:border-ink dark:hover:border-bone active:scale-[0.98] transition-all duration-300"
+              (click)="exportWishlist()"
+            >
+              <app-icon name="link" class="w-3.5 h-3.5 opacity-60" />
+              {{ t().exportWishlist }}
+              <span class="ml-1 px-1.5 py-0.5 rounded-full bg-ink/5 dark:bg-bone/10 text-[10px] font-mono">{{ activeEntries().length }}</span>
+            </button>
+          </div>
+        }
+
+        @if (activeTab() === 'downloaded' && activeEntries().length > 0) {
+          <div class="pt-4 pb-2 px-2 [animation:fadeIn_300ms_ease_both]">
+            <button
+              class="w-full flex items-center justify-center gap-2 py-2.5 px-5 rounded-full border border-ink-200 dark:border-bone-700 bg-transparent text-ink-600 dark:text-bone-600 font-medium uppercase text-xs tracking-wide hover:bg-red-500 hover:text-white hover:border-red-500 dark:hover:bg-red-500 dark:hover:text-white active:scale-[0.98] transition-all duration-300"
+              (click)="openClearModal()"
+            >
+              <app-icon name="trash" class="w-3.5 h-3.5 opacity-60" />
+              {{ t().clearWishlist }} ({{ activeEntries().length }})
+            </button>
+          </div>
+        }
       </div>
-
-      @if (superuser.enabled() && activeTab() === 'pending' && activeEntries().length > 0) {
-        <div class="shrink-0 px-3 pt-3 pb-6 [animation:fadeIn_300ms_ease_both]">
-          <button
-            class="w-full flex items-center justify-center gap-2 py-3.5 px-6 rounded-full border border-ink-200 dark:border-bone-800 bg-white dark:bg-ink-200 text-ink dark:text-bone font-bold uppercase text-xs tracking-[0.1em] shadow-sm hover:bg-ink hover:text-bone dark:hover:bg-bone dark:hover:text-ink hover:border-ink dark:hover:border-bone hover:shadow-md active:scale-[0.98] transition-all duration-300"
-            (click)="exportWishlist()"
-          >
-            <app-icon name="link" class="w-4 h-4 opacity-70" />
-            {{ t().exportWishlist }}
-            <span class="ml-1 px-2 py-0.5 rounded-full bg-ink/10 dark:bg-bone/10 text-[10px] font-mono tracking-normal">{{ activeEntries().length }}</span>
-          </button>
-          <p class="text-center text-[11px] text-ink-500 dark:text-bone-500 mt-2.5 italic font-light tracking-wide">Copia todos los comandos para pegar en la terminal</p>
-        </div>
-      }
-
-      @if (activeTab() === 'downloaded' && activeEntries().length > 0) {
-        <div class="shrink-0 px-3 pt-3 pb-6 [animation:fadeIn_300ms_ease_both]">
-          <button
-            class="w-full flex items-center justify-center gap-2 py-3 px-6 rounded-full border border-red-300 dark:border-red-400/50 bg-white dark:bg-ink-200 text-red-600 dark:text-red-400 font-bold uppercase text-xs tracking-[0.1em] shadow-sm hover:bg-red-500 hover:text-white dark:hover:bg-red-500 dark:hover:text-white hover:border-red-500 active:scale-[0.98] transition-all duration-300"
-            (click)="openClearModal()"
-          >
-            <app-icon name="trash" class="w-4 h-4 opacity-80" />
-            {{ t().clearWishlist }} ({{ activeEntries().length }})
-          </button>
-        </div>
-      }
 
       <app-modal #clearModal [title]="t().clearWishlist" (onClose)="closeClearModal()">
         <div class="flex flex-col gap-4">

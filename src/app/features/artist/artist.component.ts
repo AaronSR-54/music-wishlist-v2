@@ -28,6 +28,7 @@ import { PageHeaderComponent } from '../../shared/components/page-header/page-he
 import { ArtistCacheService } from '../../core/services/artist-cache.service';
 import { ContextMenuPanelComponent } from '../../shared/components/context-menu-panel/context-menu-panel.component';
 import { ToastService } from '../../shared/components/toast/toast.component';
+import { SuperuserService } from '../../core/superuser/superuser.service';
 
 @Component({
   selector: 'app-artist',
@@ -289,7 +290,7 @@ import { ToastService } from '../../shared/components/toast/toast.component';
                     >
                       <app-cover [name]="item.name" [coverUrl]="item.coverUrl" />
                       <div
-                        class="absolute top-1 right-1 flex gap-1 md:opacity-0 md:group-hover:opacity-100 transition-opacity"
+                        class="absolute bottom-1 right-1 flex gap-1 md:opacity-0 md:group-hover:opacity-100 transition-opacity"
                       >
                         <button
                           appBtn
@@ -331,6 +332,17 @@ import { ToastService } from '../../shared/components/toast/toast.component';
               </div>
             </div>
           }
+          @if (superuser.enabled() && allReleasesForExport().length > 0) {
+            <div class="pt-6 pb-2 px-2">
+              <button
+                class="w-full flex items-center justify-center gap-2 py-2.5 px-5 rounded-full border border-ink-200 dark:border-bone-700 bg-transparent text-ink-600 dark:text-bone-600 font-medium uppercase text-xs tracking-wide hover:bg-ink hover:text-bone dark:hover:bg-bone dark:hover:text-ink active:scale-[0.98] transition-all"
+                (click)="exportAllReleases()"
+              >
+                <app-icon name="link" class="w-3.5 h-3.5 opacity-60" />
+                {{ t().exportAll }} ({{ allReleasesForExport().length }})
+              </button>
+            </div>
+          }
         }
       </div>
     </div>
@@ -349,6 +361,7 @@ export class ArtistComponent implements OnInit {
   private destroyRef = inject(DestroyRef);
   private artistCacheSvc = inject(ArtistCacheService);
   private toast = inject(ToastService);
+  superuser = inject(SuperuserService);
 
   contextMenu = signal<{ x: number; y: number; item: Track | ReleaseItem; kind: 'track' | 'release' } | null>(null);
 
@@ -373,6 +386,8 @@ export class ArtistComponent implements OnInit {
       { title: 'Singles', items: this.singles() },
     ].filter((s) => s.items.length > 0),
   );
+
+  allReleasesForExport = computed(() => this.releaseSections().flatMap((s) => s.items));
 
   ngOnInit() {
     this.route.paramMap
@@ -589,6 +604,18 @@ export class ArtistComponent implements OnInit {
       this.router.navigate(['/album', (menu.item as Track).albumId!]);
     }
     this.closeContextMenu();
+  }
+
+  async exportAllReleases(): Promise<void> {
+    const items = this.allReleasesForExport();
+    if (!items.length) return;
+    const cmds = items.map((item) => `godeez https://deezer.com/album/${item.id}`).join('\n');
+    try {
+      await navigator.clipboard.writeText(cmds);
+      this.toast.success(this.languageService.t().wishlistExported);
+    } catch {
+      this.toast.error(this.languageService.t().toastError);
+    }
   }
 
   formatFans = formatFans;

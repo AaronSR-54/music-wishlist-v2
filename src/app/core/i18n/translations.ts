@@ -107,6 +107,7 @@ export const translations = {
     wishlistCleared: 'Lista vaciada',
     cancel: 'Cancelar',
     confirm: 'Confirmar',
+    exportAll: 'Exportar todo',
   },
   en: {
     defaultPage: 'Home page',
@@ -216,6 +217,7 @@ export const translations = {
     wishlistCleared: 'List cleared',
     cancel: 'Cancel',
     confirm: 'Confirm',
+    exportAll: 'Export all',
   },
 } as const;
 
