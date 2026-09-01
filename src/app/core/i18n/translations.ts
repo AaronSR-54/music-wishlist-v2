@@ -102,6 +102,11 @@ export const translations = {
     superuserDisabled: 'Modo superuser desactivado',
     exportWishlist: 'Exportar Wishlist',
     wishlistExported: 'Wishlist copiada al portapapeles',
+    clearWishlist: 'Vaciar lista',
+    confirmClearWishlist: '¿Vaciar la lista de listos? Esta acción no se puede deshacer.',
+    wishlistCleared: 'Lista vaciada',
+    cancel: 'Cancelar',
+    confirm: 'Confirmar',
   },
   en: {
     defaultPage: 'Home page',
@@ -206,6 +211,11 @@ export const translations = {
     superuserDisabled: 'Superuser mode disabled',
     exportWishlist: 'Export Wishlist',
     wishlistExported: 'Wishlist copied to clipboard',
+    clearWishlist: 'Clear list',
+    confirmClearWishlist: 'Clear the ready list? This cannot be undone.',
+    wishlistCleared: 'List cleared',
+    cancel: 'Cancel',
+    confirm: 'Confirm',
   },
 } as const;
 
