@@ -40,6 +40,8 @@ import { SearchInputComponent } from '../../shared/components/search-input/searc
 import { PageHeaderComponent } from '../../shared/components/page-header/page-header.component';
 import { SearchEmptyStateComponent } from '../../shared/components/search-empty-state/search-empty-state.component';
 import { HorizontalScrollComponent } from '../../shared/components/horizontal-scroll/horizontal-scroll.component';
+import { ContextMenuPanelComponent } from '../../shared/components/context-menu-panel/context-menu-panel.component';
+import { ToastService } from '../../shared/components/toast/toast.component';
 
 register();
 
@@ -59,6 +61,7 @@ register();
     PageHeaderComponent,
     SearchEmptyStateComponent,
     HorizontalScrollComponent,
+    ContextMenuPanelComponent,
   ],
   styles: `
     :host {
@@ -133,6 +136,21 @@ register();
     }
   `,
   template: `
+    @if (contextMenu()) {
+      <app-context-menu-panel
+        [x]="contextMenu()!.x"
+        [y]="contextMenu()!.y"
+        [mobile]="isMobile"
+        (onClose)="closeContextMenu()"
+        (onCopyLink)="copyFromContextMenu()"
+        (onGoToArtist)="goToArtistFromContextMenu()"
+        (onGoToAlbum)="goToAlbumFromContextMenu()"
+        [showArtist]="false"
+        [showAlbum]="false"
+        [showRemove]="false"
+      />
+    }
+
     <div
       class="flex flex-col justify-between h-full overflow-hidden p-0.5 pt-2"
     >
@@ -178,18 +196,23 @@ register();
           @case ('results') {
             <div class="scroll-fade results-enter">
               @for (item of filteredResults(); track item.id; let i = $index) {
-                <app-search-result-item
-                  [style.animation]="'searchReveal 400ms cubic-bezier(0.16,1,0.3,1) both'"
-                  [style.animation-delay]="i * 30 + 'ms'"
-                  [item]="item"
-                  [type]="item.type"
-                  [isAdded]="isAdded(item.id, item.type)"
-                  [showAddButton]="true"
-                  [showTypeChip]="showTypeChip()"
-                  (onArtistClick)="goToArtist($event)"
-                  (onAlbumClick)="goToAlbum($event)"
-                  (onAddClick)="toggleAction($event)"
-                />
+                <div
+                  class="select-none"
+                  (contextmenu)="onContextMenu($event, item)"
+                >
+                  <app-search-result-item
+                    [style.animation]="'searchReveal 400ms cubic-bezier(0.16,1,0.3,1) both'"
+                    [style.animation-delay]="i * 30 + 'ms'"
+                    [item]="item"
+                    [type]="item.type"
+                    [isAdded]="isAdded(item.id, item.type)"
+                    [showAddButton]="true"
+                    [showTypeChip]="showTypeChip()"
+                    (onArtistClick)="goToArtist($event)"
+                    (onAlbumClick)="goToAlbum($event)"
+                    (onAddClick)="toggleAction($event)"
+                  />
+                </div>
               }
             </div>
           }
@@ -243,6 +266,13 @@ export class SearchComponent {
   private authSvc = inject(AuthService);
   private languageService = inject(LanguageService);
   private router = inject(Router);
+  private toast = inject(ToastService);
+
+  contextMenu = signal<{ x: number; y: number; item: Track } | null>(null);
+
+  get isMobile(): boolean {
+    return window.innerWidth < 768;
+  }
 
   t = computed(() => this.languageService.t());
   query = signal(this.searchSvc.getSavedSearchState()?.query || '');
@@ -374,5 +404,53 @@ export class SearchComponent {
 
   goToAlbum(albumId: string) {
     this.router.navigate(['/album', albumId]);
+  }
+
+  onContextMenu(event: MouseEvent, item: Track): void {
+    if (item.type === 'artist') return;
+    event.preventDefault();
+    event.stopPropagation();
+    this.contextMenu.set({ x: event.clientX, y: event.clientY, item });
+  }
+
+  closeContextMenu(): void {
+    this.contextMenu.set(null);
+  }
+
+  async copyFromContextMenu(): Promise<void> {
+    const menu = this.contextMenu();
+    if (!menu) return;
+    const url = this.buildDeezerUrl(menu.item);
+    if (!url) return;
+    try {
+      await navigator.clipboard.writeText(url);
+      this.toast.success(this.languageService.t().toastLinkCopied);
+    } catch {
+      this.toast.error(this.languageService.t().toastError);
+    }
+    this.closeContextMenu();
+  }
+
+  goToArtistFromContextMenu(): void {
+    const menu = this.contextMenu();
+    if (menu?.item.artistId) {
+      this.router.navigate(['/artist', menu.item.artistId]);
+    }
+    this.closeContextMenu();
+  }
+
+  goToAlbumFromContextMenu(): void {
+    const menu = this.contextMenu();
+    if (menu?.item.albumId) {
+      this.router.navigate(['/album', menu.item.albumId]);
+    }
+    this.closeContextMenu();
+  }
+
+  private buildDeezerUrl(item: Track): string | null {
+    if (!item.id) return null;
+    if (item.type === 'artist') return `https://deezer.com/artist/${item.id}`;
+    if (item.type === 'track') return `https://deezer.com/track/${item.id}`;
+    return `https://deezer.com/album/${item.id}`;
   }
 }

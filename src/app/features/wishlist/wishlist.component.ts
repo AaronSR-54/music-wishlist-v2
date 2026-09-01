@@ -13,6 +13,7 @@ import { PageHeaderComponent } from '../../shared/components/page-header/page-he
 import { ToastService } from '../../shared/components/toast/toast.component';
 import { ContextMenuPanelComponent } from '../../shared/components/context-menu-panel/context-menu-panel.component';
 import { SearchService } from '../../core/api/search.service';
+import { SuperuserService } from '../../core/superuser/superuser.service';
 
 type WishlistTab = 'pending' | 'downloaded';
 
@@ -129,6 +130,17 @@ type WishlistTab = 'pending' | 'downloaded';
           />
         }
       </div>
+
+      @if (superuser.enabled() && activeTab() === 'pending' && activeEntries().length > 0) {
+        <div class="shrink-0 px-2 pt-2 pb-4 [animation:fadeIn_300ms_ease_both]">
+          <button
+            class="w-full py-3 rounded-lg bg-ink text-bone dark:bg-bone dark:text-ink font-bold uppercase text-sm tracking-wide transition-all hover:scale-[1.02] active:scale-95"
+            (click)="exportWishlist()"
+          >
+            {{ t().exportWishlist }} ({{ activeEntries().length }})
+          </button>
+        </div>
+      }
     </div>
   `,
 })
@@ -138,6 +150,7 @@ export class WishlistComponent {
   private toast = inject(ToastService);
   private router = inject(Router);
   private searchSvc = inject(SearchService);
+  superuser = inject(SuperuserService);
 
   activeTab = signal<WishlistTab>('pending');
   animatingTab = signal(false);
@@ -327,6 +340,28 @@ export class WishlistComponent {
     try {
       await navigator.clipboard.writeText(url);
       this.toast.success(this.t().toastLinkCopied);
+    } catch {
+      this.toast.error(this.t().toastError);
+    }
+  }
+
+  async exportWishlist(): Promise<void> {
+    const entries = this.activeEntries();
+    if (!entries.length) return;
+    const cmds = entries
+      .filter((e) => e.trackId)
+      .map((e) => {
+        const url =
+          e.type === 'track'
+            ? `https://deezer.com/track/${e.trackId}`
+            : `https://deezer.com/album/${e.trackId}`;
+        return `godeez ${url}`;
+      })
+      .join('\n');
+    if (!cmds) return;
+    try {
+      await navigator.clipboard.writeText(cmds);
+      this.toast.success(this.t().wishlistExported);
     } catch {
       this.toast.error(this.t().toastError);
     }

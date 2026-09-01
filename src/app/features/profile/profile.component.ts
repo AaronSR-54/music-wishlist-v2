@@ -14,6 +14,8 @@ import { ProfileSharedComponent } from './sections/profile-shared.component';
 import { ProfileSettingsComponent } from './sections/profile-settings.component';
 import { LanguageService } from '../../core/i18n/language.service';
 import { VersionService } from '../../core/version/version.service';
+import { SuperuserService } from '../../core/superuser/superuser.service';
+import { ToastService } from '../../shared/components/toast/toast.component';
 
 @Component({
   selector: 'app-profile',
@@ -118,7 +120,8 @@ import { VersionService } from '../../core/version/version.service';
             <!-- ACCOUNT -->
             <app-profile-account />
             <span
-              class="text-ink-100 dark:text-bone-800 text-[11px] italic font-medium font-mono"
+              class="text-ink-100 dark:text-bone-800 text-[11px] italic font-medium font-mono cursor-pointer select-none active:scale-95 transition-transform"
+              (click)="onVersionTap()"
             >
               v{{ versionService.version() }}
             </span>
@@ -133,10 +136,21 @@ export class ProfileComponent {
   private router = inject(Router);
   private languageService = inject(LanguageService);
   versionService = inject(VersionService);
+  private superuser = inject(SuperuserService);
+  private toast = inject(ToastService);
 
   t = computed(() => this.languageService.t());
 
   goBack() {
     this.router.navigate(['/']);
+  }
+
+  onVersionTap(): void {
+    const result = this.superuser.handleVersionTap();
+    if (result === 'enabled') {
+      this.toast.success(this.t().superuserEnabled);
+    } else if (result === 'disabled') {
+      this.toast.success(this.t().superuserDisabled);
+    }
   }
 }

@@ -23,6 +23,8 @@ import { SpinnerComponent } from '../../shared/components/spinner/spinner.compon
 import { EmptyStateComponent } from '../../shared/components/empty-state/empty-state.component';
 import { LanguageService } from '../../core/i18n/language.service';
 import { PageHeaderComponent } from '../../shared/components/page-header/page-header.component';
+import { ContextMenuPanelComponent } from '../../shared/components/context-menu-panel/context-menu-panel.component';
+import { ToastService } from '../../shared/components/toast/toast.component';
 
 @Component({
   selector: 'app-releases',
@@ -34,6 +36,7 @@ import { PageHeaderComponent } from '../../shared/components/page-header/page-he
     SpinnerComponent,
     EmptyStateComponent,
     PageHeaderComponent,
+    ContextMenuPanelComponent,
   ],
   styles: `
     @keyframes scaleIn {
@@ -92,6 +95,21 @@ import { PageHeaderComponent } from '../../shared/components/page-header/page-he
     }
   `,
   template: `
+    @if (contextMenu()) {
+      <app-context-menu-panel
+        [x]="contextMenu()!.x"
+        [y]="contextMenu()!.y"
+        [mobile]="isMobile"
+        (onClose)="closeContextMenu()"
+        (onCopyLink)="copyFromContextMenu()"
+        (onGoToArtist)="goToArtistFromContextMenu()"
+        (onGoToAlbum)="goToAlbumFromContextMenu()"
+        [showArtist]="!!contextMenu()!.item.artistId"
+        [showAlbum]="true"
+        [showRemove]="false"
+      />
+    }
+
     <div
       class="flex flex-col h-full overflow-hidden p-0.5 pt-2 gap-4 w-full [animation:fadeIn_300ms_ease_both]"
     >
@@ -169,14 +187,19 @@ import { PageHeaderComponent } from '../../shared/components/page-header/page-he
               track item.id + ':' + item.type;
               let i = $index
             ) {
-              <app-card-item
-                class="[animation:scaleIn_300ms_ease_both]"
-                [style.animation-delay]="i * 30 + 'ms'"
-                [item]="item"
-                [isAdded]="isInWishlist(item.id)"
-                (toggleWishlist)="toggleWishlist($event)"
-                (onAlbumClick)="goToAlbum($event)"
-              />
+              <div
+                class="select-none"
+                (contextmenu)="onContextMenu($event, item)"
+              >
+                <app-card-item
+                  class="[animation:scaleIn_300ms_ease_both]"
+                  [style.animation-delay]="i * 30 + 'ms'"
+                  [item]="item"
+                  [isAdded]="isInWishlist(item.id)"
+                  (toggleWishlist)="toggleWishlist($event)"
+                  (onAlbumClick)="goToAlbum($event)"
+                />
+              </div>
             }
           </div>
         }
@@ -191,7 +214,14 @@ export class ReleasesComponent implements OnInit {
   private authSvc = inject(AuthService);
   private languageService = inject(LanguageService);
   private router = inject(Router);
+  private toast = inject(ToastService);
   private apiUrl = 'https://music-wishlist-v2.vercel.app/api';
+
+  contextMenu = signal<{ x: number; y: number; item: ReleaseItem } | null>(null);
+
+  get isMobile(): boolean {
+    return window.innerWidth < 768;
+  }
 
   t = computed(() => this.languageService.t());
 
@@ -495,5 +525,44 @@ export class ReleasesComponent implements OnInit {
 
   goToAlbum(albumId: string) {
     this.router.navigate(['/album', albumId]);
+  }
+
+  onContextMenu(event: MouseEvent, item: ReleaseItem): void {
+    event.preventDefault();
+    event.stopPropagation();
+    this.contextMenu.set({ x: event.clientX, y: event.clientY, item });
+  }
+
+  closeContextMenu(): void {
+    this.contextMenu.set(null);
+  }
+
+  async copyFromContextMenu(): Promise<void> {
+    const menu = this.contextMenu();
+    if (!menu) return;
+    const url = `https://deezer.com/album/${menu.item.id}`;
+    try {
+      await navigator.clipboard.writeText(url);
+      this.toast.success(this.languageService.t().toastLinkCopied);
+    } catch {
+      this.toast.error(this.languageService.t().toastError);
+    }
+    this.closeContextMenu();
+  }
+
+  goToArtistFromContextMenu(): void {
+    const menu = this.contextMenu();
+    if (menu?.item.artistId) {
+      this.router.navigate(['/artist', menu.item.artistId]);
+    }
+    this.closeContextMenu();
+  }
+
+  goToAlbumFromContextMenu(): void {
+    const menu = this.contextMenu();
+    if (menu) {
+      this.router.navigate(['/album', menu.item.id]);
+    }
+    this.closeContextMenu();
   }
 }

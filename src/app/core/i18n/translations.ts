@@ -98,6 +98,10 @@ export const translations = {
     toastLinkCopied: 'Enlace copiado',
     copyLink: 'Copiar enlace',
     appVersion: 'Versión',
+    superuserEnabled: 'Modo superuser activado',
+    superuserDisabled: 'Modo superuser desactivado',
+    exportWishlist: 'Exportar Wishlist',
+    wishlistExported: 'Wishlist copiada al portapapeles',
   },
   en: {
     defaultPage: 'Home page',
@@ -198,6 +202,10 @@ export const translations = {
     toastLinkCopied: 'Link copied',
     copyLink: 'Copy link',
     appVersion: 'Version',
+    superuserEnabled: 'Superuser mode enabled',
+    superuserDisabled: 'Superuser mode disabled',
+    exportWishlist: 'Export Wishlist',
+    wishlistExported: 'Wishlist copied to clipboard',
   },
 } as const;
 
