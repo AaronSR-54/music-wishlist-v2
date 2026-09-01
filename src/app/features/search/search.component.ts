@@ -211,7 +211,6 @@ register();
                     (onArtistClick)="goToArtist($event)"
                     (onAlbumClick)="goToAlbum($event)"
                     (onAddClick)="toggleAction($event)"
-                    (onMoreClick)="onMoreClick($event)"
                   />
                 </div>
               }
@@ -412,12 +411,6 @@ export class SearchComponent {
     event.preventDefault();
     event.stopPropagation();
     this.contextMenu.set({ x: event.clientX, y: event.clientY, item });
-  }
-
-  onMoreClick(event: { item: any; x: number; y: number }): void {
-    const track = event.item as Track;
-    if (track.type === 'artist') return;
-    this.contextMenu.set({ x: event.x, y: event.y, item: track });
   }
 
   closeContextMenu(): void {

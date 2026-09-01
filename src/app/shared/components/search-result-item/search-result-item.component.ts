@@ -252,16 +252,6 @@ type WishlistEntryExtended = WishlistEntry & {
             >
               <app-icon [name]="addButtonIcon()" class="w-5 h-5" />
             </button>
-            @if (!isArtist()) {
-              <button
-                appBtn
-                variant="action"
-                (click)="openMoreMenu($event)"
-                (touchstart)="$event.stopPropagation()"
-              >
-                <app-icon name="more" class="w-4 h-4 text-ink dark:text-bone" />
-              </button>
-            }
           }
         </div>
       </div>
@@ -296,7 +286,6 @@ export class SearchResultItemComponent {
   onUnmarkDownloaded = output<WishlistEntry>();
   onRemove = output<WishlistEntry>();
   onMenuClick = output<{ entry: WishlistEntry; x: number; y: number }>();
-  onMoreClick = output<{ item: Track | ReleaseItem | WishlistEntry; x: number; y: number }>();
 
   t = computed(() => this.languageService.t());
 
@@ -502,19 +491,6 @@ export class SearchResultItemComponent {
     const rect = (event.currentTarget as HTMLElement).getBoundingClientRect();
     this.onMenuClick.emit({
       entry: this.wishlistItem(),
-      x: rect.left,
-      y: rect.bottom,
-    });
-  }
-
-  openMoreMenu(event: MouseEvent): void {
-    event.stopPropagation();
-    const rect = (event.currentTarget as HTMLElement).getBoundingClientRect();
-    const item: any = this.isWishlist() ? this.wishlistItem() : this.trackItem();
-    // fallback to releaseItem if trackItem is empty (should not happen)
-    const resolved = item?.id ? item : (this.releaseItem() as any);
-    this.onMoreClick.emit({
-      item: resolved,
       x: rect.left,
       y: rect.bottom,
     });

@@ -1,4 +1,4 @@
-import { Component, computed, inject, signal, ViewChild, ChangeDetectionStrategy } from '@angular/core';
+import { Component, computed, inject, signal, ChangeDetectionStrategy } from '@angular/core';
 import { Router } from '@angular/router';
 import { WishlistService } from '../../core/firebase/wishlist.service';
 import { WishlistEntry } from '../../shared/models/wishlist-entry.model';
@@ -14,8 +14,6 @@ import { ToastService } from '../../shared/components/toast/toast.component';
 import { ContextMenuPanelComponent } from '../../shared/components/context-menu-panel/context-menu-panel.component';
 import { SearchService } from '../../core/api/search.service';
 import { SuperuserService } from '../../core/superuser/superuser.service';
-import { IconComponent } from '../../shared/icons/icon.component';
-import { ModalComponent } from '../../shared/components/modal/modal.component';
 
 type WishlistTab = 'pending' | 'downloaded';
 
@@ -29,8 +27,6 @@ type WishlistTab = 'pending' | 'downloaded';
     SegmentedTabsComponent,
     PageHeaderComponent,
     ContextMenuPanelComponent,
-    IconComponent,
-    ModalComponent,
   ],
   styles: `
     .scroll-fade {
@@ -136,50 +132,15 @@ type WishlistTab = 'pending' | 'downloaded';
       </div>
 
       @if (superuser.enabled() && activeTab() === 'pending' && activeEntries().length > 0) {
-        <div class="shrink-0 px-3 pt-3 pb-6 [animation:fadeIn_300ms_ease_both]">
+        <div class="shrink-0 px-2 pt-2 pb-4 [animation:fadeIn_300ms_ease_both]">
           <button
-            class="w-full flex items-center justify-center gap-2.5 py-3.5 px-6 rounded-full border border-ink-200 dark:border-bone-800 bg-white dark:bg-ink-200 text-ink dark:text-bone font-bold uppercase text-xs tracking-[0.1em] shadow-sm hover:bg-ink hover:text-bone dark:hover:bg-bone dark:hover:text-ink hover:border-ink dark:hover:border-bone hover:shadow-md active:scale-[0.98] transition-all duration-300"
+            class="w-full py-3 rounded-lg bg-ink text-bone dark:bg-bone dark:text-ink font-bold uppercase text-sm tracking-wide transition-all hover:scale-[1.02] active:scale-95"
             (click)="exportWishlist()"
           >
-            <app-icon name="link" class="w-4 h-4 opacity-70" />
-            {{ t().exportWishlist }}
-            <span class="ml-1 px-2 py-0.5 rounded-full bg-ink/10 dark:bg-bone/10 text-[10px] font-mono tracking-normal">{{ activeEntries().length }}</span>
-          </button>
-          <p class="text-center text-[11px] text-ink-500 dark:text-bone-500 mt-2.5 italic font-light tracking-wide">Copia todos los comandos para pegar en la terminal</p>
-        </div>
-      }
-
-      @if (activeTab() === 'downloaded' && activeEntries().length > 0) {
-        <div class="shrink-0 px-3 pt-3 pb-6 [animation:fadeIn_300ms_ease_both]">
-          <button
-            class="w-full flex items-center justify-center gap-2 py-3 px-6 rounded-full border border-red-300 dark:border-red-400/50 bg-white dark:bg-ink-200 text-red-600 dark:text-red-400 font-bold uppercase text-xs tracking-[0.1em] shadow-sm hover:bg-red-500 hover:text-white dark:hover:bg-red-500 dark:hover:text-white hover:border-red-500 active:scale-[0.98] transition-all duration-300"
-            (click)="openClearModal()"
-          >
-            <app-icon name="trash" class="w-4 h-4 opacity-80" />
-            {{ t().clearWishlist }} ({{ activeEntries().length }})
+            {{ t().exportWishlist }} ({{ activeEntries().length }})
           </button>
         </div>
       }
-
-      <app-modal #clearModal [title]="t().clearWishlist" (onClose)="closeClearModal()">
-        <div class="flex flex-col gap-4">
-          <p class="text-sm text-ink-600 dark:text-bone-600 leading-relaxed">{{ t().confirmClearWishlist }}</p>
-          <div class="flex gap-2 justify-end">
-            <button
-              class="px-4 py-2 rounded-full border border-ink-200 dark:border-bone-700 text-ink dark:text-bone text-sm font-bold uppercase tracking-wide hover:bg-ink hover:text-bone dark:hover:bg-bone dark:hover:text-ink transition-colors"
-              (click)="closeClearModal()"
-            >
-              {{ t().cancel }}
-            </button>
-            <button
-              class="px-4 py-2 rounded-full bg-red-500 text-white text-sm font-bold uppercase tracking-wide hover:bg-red-600 active:scale-95 transition-all"
-              (click)="confirmClear()"
-            >
-              {{ t().confirm }}
-            </button>
-          </div>
-        </div>
-      </app-modal>
     </div>
   `,
 })
@@ -190,8 +151,6 @@ export class WishlistComponent {
   private router = inject(Router);
   private searchSvc = inject(SearchService);
   superuser = inject(SuperuserService);
-
-  @ViewChild('clearModal') clearModal!: ModalComponent;
 
   activeTab = signal<WishlistTab>('pending');
   animatingTab = signal(false);
@@ -436,18 +395,5 @@ export class WishlistComponent {
     if (entry.id) {
       await this.wishlistSvc.remove(entry.id);
     }
-  }
-
-  openClearModal(): void {
-    this.clearModal?.open();
-  }
-
-  closeClearModal(): void {
-    this.clearModal?.close();
-  }
-
-  async confirmClear(): Promise<void> {
-    this.closeClearModal();
-    await this.wishlistSvc.clearDownloaded();
   }
 }

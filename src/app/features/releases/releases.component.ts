@@ -198,7 +198,6 @@ import { ToastService } from '../../shared/components/toast/toast.component';
                   [isAdded]="isInWishlist(item.id)"
                   (toggleWishlist)="toggleWishlist($event)"
                   (onAlbumClick)="goToAlbum($event)"
-                  (onMoreClick)="onMoreClick($event)"
                 />
               </div>
             }
@@ -532,10 +531,6 @@ export class ReleasesComponent implements OnInit {
     event.preventDefault();
     event.stopPropagation();
     this.contextMenu.set({ x: event.clientX, y: event.clientY, item });
-  }
-
-  onMoreClick(event: { item: ReleaseItem; x: number; y: number }): void {
-    this.contextMenu.set({ x: event.x, y: event.y, item: event.item });
   }
 
   closeContextMenu(): void {

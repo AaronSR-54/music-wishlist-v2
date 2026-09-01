@@ -26,8 +26,6 @@ import { formatFans } from '../../shared/utils/format-fans';
 import { LanguageService } from '../../core/i18n/language.service';
 import { PageHeaderComponent } from '../../shared/components/page-header/page-header.component';
 import { ArtistCacheService } from '../../core/services/artist-cache.service';
-import { ContextMenuPanelComponent } from '../../shared/components/context-menu-panel/context-menu-panel.component';
-import { ToastService } from '../../shared/components/toast/toast.component';
 
 @Component({
   selector: 'app-artist',
@@ -41,7 +39,6 @@ import { ToastService } from '../../shared/components/toast/toast.component';
     IconComponent,
     PageHeaderComponent,
     ButtonComponent,
-    ContextMenuPanelComponent,
   ],
   styles: `
     @keyframes popIn {
@@ -117,20 +114,6 @@ import { ToastService } from '../../shared/components/toast/toast.component';
     }
   `,
   template: `
-    @if (contextMenu()) {
-      <app-context-menu-panel
-        [x]="contextMenu()!.x"
-        [y]="contextMenu()!.y"
-        [mobile]="isMobile"
-        (onClose)="closeContextMenu()"
-        (onCopyLink)="copyFromContextMenu()"
-        [showArtist]="false"
-        [showAlbum]="contextMenu()!.kind === 'release'"
-        (onGoToAlbum)="goToAlbumFromContextMenu()"
-        [showRemove]="false"
-      />
-    }
-
     <div class="flex flex-col h-full overflow-hidden p-0.5 pt-2 gap-4">
       <app-page-header
         prefix="02.a/"
@@ -237,25 +220,19 @@ import { ToastService } from '../../shared/components/toast/toast.component';
           } @else {
             <div class="flex flex-col">
               @for (track of tracks(); track track.id; let i = $index) {
-                <div
-                  class="select-none"
-                  (contextmenu)="onTrackContextMenu($event, track)"
-                >
-                  <app-search-result-item
-                    [style.animation]="
-                      'trackLeft 450ms cubic-bezier(0.16,1,0.3,1) both'
-                    "
-                    [style.animation-delay]="i * 35 + 'ms'"
-                    [item]="track"
-                    type="track"
-                    [isAdded]="isInWishlist(track.id)"
-                    [showAddButton]="true"
-                    [showTypeChip]="false"
-                    (onAddClick)="toggle($event)"
-                    (onPlayClick)="onTrackPlayClicked($event)"
-                    (onMoreClick)="onTrackMoreClick($event)"
-                  />
-                </div>
+                <app-search-result-item
+                  [style.animation]="
+                    'trackLeft 450ms cubic-bezier(0.16,1,0.3,1) both'
+                  "
+                  [style.animation-delay]="i * 35 + 'ms'"
+                  [item]="track"
+                  type="track"
+                  [isAdded]="isInWishlist(track.id)"
+                  [showAddButton]="true"
+                  [showTypeChip]="false"
+                  (onAddClick)="toggle($event)"
+                  (onPlayClick)="onTrackPlayClicked($event)"
+                />
               }
             </div>
           }
@@ -285,11 +262,10 @@ import { ToastService } from '../../shared/components/toast/toast.component';
                     <div
                       class="w-full aspect-square rounded-md overflow-hidden bg-ink-100 dark:bg-ink-800 cursor-pointer relative"
                       (click)="navigateToAlbum(item.id)"
-                      (contextmenu)="onReleaseContextMenu($event, item)"
                     >
                       <app-cover [name]="item.name" [coverUrl]="item.coverUrl" />
                       <div
-                        class="absolute top-1 right-1 flex gap-1 md:opacity-0 md:group-hover:opacity-100 transition-opacity"
+                        class="absolute top-1 right-1 md:opacity-0 md:group-hover:opacity-100 transition-opacity"
                       >
                         <button
                           appBtn
@@ -302,14 +278,6 @@ import { ToastService } from '../../shared/components/toast/toast.component';
                             [name]="isInWishlist(item.id) ? 'check' : 'plus'"
                             class="w-4 h-4 md:w-5 md:h-5"
                           />
-                        </button>
-                        <button
-                          appBtn
-                          variant="action"
-                          class="!w-7 !h-7 !bg-bone/90 dark:!bg-ink/90 shadow-md"
-                          (click)="onReleaseMoreClick($event, item)"
-                        >
-                          <app-icon name="more" class="w-3 h-3 text-ink dark:text-bone" />
                         </button>
                       </div>
                     </div>
@@ -348,13 +316,6 @@ export class ArtistComponent implements OnInit {
   private languageService = inject(LanguageService);
   private destroyRef = inject(DestroyRef);
   private artistCacheSvc = inject(ArtistCacheService);
-  private toast = inject(ToastService);
-
-  contextMenu = signal<{ x: number; y: number; item: Track | ReleaseItem; kind: 'track' | 'release' } | null>(null);
-
-  get isMobile(): boolean {
-    return window.innerWidth < 768;
-  }
 
   t = computed(() => this.languageService.t());
 
@@ -537,58 +498,6 @@ export class ArtistComponent implements OnInit {
 
   navigateToAlbum(albumId: string) {
     this.router.navigate(['/', 'album', albumId]);
-  }
-
-  onTrackContextMenu(event: MouseEvent, track: Track): void {
-    event.preventDefault();
-    event.stopPropagation();
-    this.contextMenu.set({ x: event.clientX, y: event.clientY, item: track, kind: 'track' });
-  }
-
-  onTrackMoreClick(event: { item: any; x: number; y: number }): void {
-    this.contextMenu.set({ x: event.x, y: event.y, item: event.item as Track, kind: 'track' });
-  }
-
-  onReleaseContextMenu(event: MouseEvent, item: ReleaseItem): void {
-    event.preventDefault();
-    event.stopPropagation();
-    this.contextMenu.set({ x: event.clientX, y: event.clientY, item, kind: 'release' });
-  }
-
-  onReleaseMoreClick(event: MouseEvent, item: ReleaseItem): void {
-    event.stopPropagation();
-    const rect = (event.currentTarget as HTMLElement).getBoundingClientRect();
-    this.contextMenu.set({ x: rect.left, y: rect.bottom, item, kind: 'release' });
-  }
-
-  closeContextMenu(): void {
-    this.contextMenu.set(null);
-  }
-
-  async copyFromContextMenu(): Promise<void> {
-    const menu = this.contextMenu();
-    if (!menu) return;
-    const url =
-      menu.kind === 'track'
-        ? `https://deezer.com/track/${(menu.item as Track).id}`
-        : `https://deezer.com/album/${(menu.item as ReleaseItem).id}`;
-    try {
-      await navigator.clipboard.writeText(url);
-      this.toast.success(this.languageService.t().toastLinkCopied);
-    } catch {
-      this.toast.error(this.languageService.t().toastError);
-    }
-    this.closeContextMenu();
-  }
-
-  goToAlbumFromContextMenu(): void {
-    const menu = this.contextMenu();
-    if (menu?.kind === 'release') {
-      this.router.navigate(['/album', (menu.item as ReleaseItem).id]);
-    } else if (menu?.kind === 'track' && (menu.item as Track).albumId) {
-      this.router.navigate(['/album', (menu.item as Track).albumId!]);
-    }
-    this.closeContextMenu();
   }
 
   formatFans = formatFans;

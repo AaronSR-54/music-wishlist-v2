@@ -31,8 +31,6 @@ import { ButtonComponent } from '../../shared/components/button/button.component
 import { PageHeaderComponent } from '../../shared/components/page-header/page-header.component';
 import { LoadingSpinnerComponent } from '../../shared/components/loading-spinner/loading-spinner.component';
 import { ReleaseItem } from '../../shared/models/release-item.model';
-import { ContextMenuPanelComponent } from '../../shared/components/context-menu-panel/context-menu-panel.component';
-import { ToastService } from '../../shared/components/toast/toast.component';
 
 interface AlbumDetail {
   id: string;
@@ -57,7 +55,6 @@ interface AlbumDetail {
     ButtonComponent,
     PageHeaderComponent,
     LoadingSpinnerComponent,
-    ContextMenuPanelComponent,
   ],
   styles: `
     @keyframes popIn {
@@ -115,19 +112,6 @@ interface AlbumDetail {
     }
   `,
   template: `
-    @if (contextMenu()) {
-      <app-context-menu-panel
-        [x]="contextMenu()!.x"
-        [y]="contextMenu()!.y"
-        [mobile]="isMobile"
-        (onClose)="closeContextMenu()"
-        (onCopyLink)="copyFromContextMenu()"
-        [showArtist]="false"
-        [showAlbum]="false"
-        [showRemove]="false"
-      />
-    }
-
     <div class="flex flex-col h-full overflow-hidden p-0.5 pt-2 gap-4">
       <app-page-header
         prefix="02/"
@@ -234,26 +218,20 @@ interface AlbumDetail {
 
               <div class="flex flex-col">
                 @for (track of trackList(); track track.id; let i = $index) {
-                  <div
-                    class="select-none"
-                    (contextmenu)="onTrackContextMenu($event, track)"
-                  >
-                    <app-search-result-item
-                      [style.animation]="
-                        'trackRight 450ms cubic-bezier(0.16,1,0.3,1) both'
-                      "
-                      [style.animation-delay]="i * 30 + 'ms'"
-                      [item]="track"
-                      type="track"
-                      [isAdded]="isInWishlist(track.id)"
-                      [showAddButton]="true"
-                      [showTypeChip]="false"
-                      [showTrackNumber]="true"
-                      (onAddClick)="toggle($event)"
-                      (onPlayClick)="onTrackPlayClicked($event)"
-                      (onMoreClick)="onTrackMoreClick($event)"
-                    />
-                  </div>
+                  <app-search-result-item
+                    [style.animation]="
+                      'trackRight 450ms cubic-bezier(0.16,1,0.3,1) both'
+                    "
+                    [style.animation-delay]="i * 30 + 'ms'"
+                    [item]="track"
+                    type="track"
+                    [isAdded]="isInWishlist(track.id)"
+                    [showAddButton]="true"
+                    [showTypeChip]="false"
+                    [showTrackNumber]="true"
+                    (onAddClick)="toggle($event)"
+                    (onPlayClick)="onTrackPlayClicked($event)"
+                  />
                 }
               </div>
             </div>
@@ -278,13 +256,6 @@ export class AlbumComponent {
   private authSvc = inject(AuthService);
   private previewSvc = inject(PreviewService);
   private languageService = inject(LanguageService);
-  private toast = inject(ToastService);
-
-  contextMenu = signal<{ x: number; y: number; item: Track } | null>(null);
-
-  get isMobile(): boolean {
-    return window.innerWidth < 768;
-  }
 
   t = computed(() => this.languageService.t());
   previewState = computed(() => this.previewSvc.state());
@@ -457,32 +428,5 @@ export class AlbumComponent {
     if (artistId) {
       this.router.navigate(['/', 'artist', artistId]);
     }
-  }
-
-  onTrackContextMenu(event: MouseEvent, track: Track): void {
-    event.preventDefault();
-    event.stopPropagation();
-    this.contextMenu.set({ x: event.clientX, y: event.clientY, item: track });
-  }
-
-  onTrackMoreClick(event: { item: any; x: number; y: number }): void {
-    this.contextMenu.set({ x: event.x, y: event.y, item: event.item as Track });
-  }
-
-  closeContextMenu(): void {
-    this.contextMenu.set(null);
-  }
-
-  async copyFromContextMenu(): Promise<void> {
-    const menu = this.contextMenu();
-    if (!menu) return;
-    const url = `https://deezer.com/track/${menu.item.id}`;
-    try {
-      await navigator.clipboard.writeText(url);
-      this.toast.success(this.languageService.t().toastLinkCopied);
-    } catch {
-      this.toast.error(this.languageService.t().toastError);
-    }
-    this.closeContextMenu();
   }
 }
