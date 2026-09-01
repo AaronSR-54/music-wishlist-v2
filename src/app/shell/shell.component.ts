@@ -152,9 +152,9 @@ export class ShellComponent {
 
   isDesktop = toSignal(
     this.breakpointObserver
-      .observe('(min-width: 768px)')
+      .observe('(min-width: 1024px)')
       .pipe(map((r) => r.matches)),
-    { initialValue: window.matchMedia('(min-width: 768px)').matches },
+    { initialValue: window.matchMedia('(min-width: 1024px)').matches },
   );
 
   activeTab = signal<Tab>(this.getDefaultTab());

@@ -224,7 +224,7 @@ export class WishlistComponent {
   private readonly LONG_PRESS_DURATION = 500;
 
   get isMobile(): boolean {
-    return window.innerWidth < 768;
+    return window.innerWidth < 1024;
   }
 
   activeEntries = computed(() =>

@@ -256,10 +256,11 @@ type WishlistEntryExtended = WishlistEntry & {
               <button
                 appBtn
                 variant="action"
+                class="!w-11 !h-11"
                 (click)="openMoreMenu($event)"
                 (touchstart)="$event.stopPropagation()"
               >
-                <app-icon name="more" class="w-4 h-4 text-ink dark:text-bone" />
+                <app-icon name="more" class="w-5 h-5 text-ink dark:text-bone" />
               </button>
             }
           }

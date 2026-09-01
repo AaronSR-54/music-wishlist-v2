@@ -12,7 +12,7 @@ const BASE =
 
 const VARIANTS: Record<ButtonVariant, string> = {
   add: `${BASE} border-none bg-bone-400 dark:bg-ink-400 rounded-card shrink-0 text-ink-600 dark:text-bone-600 w-11 h-11 hover:bg-bone-700 dark:hover:bg-ink-200 hover:text-bone-100 active:scale-[0.9]`,
-  action: `${BASE} bg-transparent rounded-card border-[1.5px] border-ink-100 text-bone-600 w-8 md:w-10 h-8 md:h-10 hover:border-ink-400 dark:hover:border-bone-400 hover:text-bone hover:scale-105 active:scale-95`,
+  action: `${BASE} bg-transparent rounded-card border-[1.5px] border-ink-100 text-bone-600 w-8 lg:w-10 h-8 lg:h-10 hover:border-ink-400 dark:hover:border-bone-400 hover:text-bone hover:scale-105 active:scale-95`,
   cover: `${BASE} border-none bg-transparent relative shrink-0 rounded-sm disabled:cursor-not-allowed disabled:opacity-60 enabled:hover:opacity-80`,
 };
 

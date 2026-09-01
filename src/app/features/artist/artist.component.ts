@@ -142,10 +142,10 @@ import { SuperuserService } from '../../core/superuser/superuser.service';
 
       <div class="scroll-fade flex flex-col p-2 gap-16">
         <div
-          class="flex gap-2 max-md:flex-col max-md:items-center md:gap-8 max-md:text-center mt-4"
+          class="flex gap-2 max-lg:flex-col max-lg:items-center lg:gap-8 max-lg:text-center mt-4"
         >
           <div
-            class="shrink-0 w-[200px] h-[200px] rounded-md overflow-hidden max-md:w-full max-md:h-auto max-md:aspect-square shadow-ink/5 shadow-lg artist-cover"
+            class="shrink-0 w-[200px] h-[200px] rounded-md overflow-hidden max-lg:w-full max-lg:h-auto max-lg:aspect-square shadow-ink/5 shadow-lg artist-cover"
           >
             @if (artist(); as a) {
               <app-cover [name]="a.name" [coverUrl]="a.picture_big" />
@@ -157,12 +157,12 @@ import { SuperuserService } from '../../core/superuser/superuser.service';
               <div class="flex flex-col text-ink dark:text-bone">
                 <div class="flex items-center gap-4 mb-5 artist-name">
                   <h1
-                    class="m-0 text-[2rem] md:text-[4rem] font-bold font-display flex-1"
+                    class="m-0 text-[2rem] lg:text-[4rem] font-bold font-display flex-1"
                   >
                     {{ a.name }}
                   </h1>
                   <button
-                    class="[&.active]:btn-pop-in w-9 h-9 md:w-12 md:h-12 rounded-full cursor-pointer flex items-center justify-center text-ink-600 dark:text-bone-600 shrink-0 bg-transparent p-0 transition-[color,transform] duration-fast ease-smooth hover:scale-[1.05] active:scale-[0.88]"
+                    class="[&.active]:btn-pop-in w-9 h-9 lg:w-12 lg:h-12 rounded-full cursor-pointer flex items-center justify-center text-ink-600 dark:text-bone-600 shrink-0 bg-transparent p-0 transition-[color,transform] duration-fast ease-smooth hover:scale-[1.05] active:scale-[0.88]"
                     [class.active]="isArtistInWishlist(a.id)"
                     (click)="toggleArtist($event)"
                     [title]="
@@ -174,24 +174,24 @@ import { SuperuserService } from '../../core/superuser/superuser.service';
                     @if (isArtistInWishlist(a.id)) {
                       <app-icon
                         name="heart-filled"
-                        class="w-8 h-8 md:w-12 md:h-12"
+                        class="w-8 h-8 lg:w-12 lg:h-12"
                       />
                     } @else {
-                      <app-icon name="heart" class="w-8 h-8 md:w-12 md:h-12" />
+                      <app-icon name="heart" class="w-8 h-8 lg:w-12 lg:h-12" />
                     }
                   </button>
                 </div>
 
                 <div
-                  class="flex gap-[30px] mb-5 max-md:justify-center artist-meta"
+                  class="flex gap-[30px] mb-5 max-lg:justify-center artist-meta"
                 >
                   @if (a.nb_fan !== undefined) {
                     <div class="flex flex-col gap-1">
                       <span
-                        class="font-display italic text-xs md:text-base text-ink-700 dark:text-bone-700 uppercase tracking-[0.5px]"
+                        class="font-display italic text-xs lg:text-base text-ink-700 dark:text-bone-700 uppercase tracking-[0.5px]"
                         >{{ t().followers }}</span
                       >
-                      <span class="text-lg md:text-[1.375rem] font-bold">{{
+                      <span class="text-lg lg:text-[1.375rem] font-bold">{{
                         formatFans(a.nb_fan)
                       }}</span>
                     </div>
@@ -199,10 +199,10 @@ import { SuperuserService } from '../../core/superuser/superuser.service';
                   @if (a.nb_album !== undefined) {
                     <div class="flex flex-col gap-1">
                       <span
-                        class="font-display italic text-xs md:text-base text-ink-700 dark:text-bone-700 uppercase tracking-[0.5px]"
+                        class="font-display italic text-xs lg:text-base text-ink-700 dark:text-bone-700 uppercase tracking-[0.5px]"
                         >{{ t().albums2 }}</span
                       >
-                      <span class="text-lg md:text-[1.375rem] font-bold">{{
+                      <span class="text-lg lg:text-[1.375rem] font-bold">{{
                         a.nb_album
                       }}</span>
                     </div>
@@ -215,7 +215,7 @@ import { SuperuserService } from '../../core/superuser/superuser.service';
 
         <div class="flex flex-col gap-4 tracks-section">
           <h2
-            class="font-body text-xs md:text-base text-ink-700 dark:text-bone-700 font-semibold tracking-[0.05em] uppercase m-0"
+            class="font-body text-xs lg:text-base text-ink-700 dark:text-bone-700 font-semibold tracking-[0.05em] uppercase m-0"
           >
             {{ t().popularSongs }}
           </h2>
@@ -225,13 +225,13 @@ import { SuperuserService } from '../../core/superuser/superuser.service';
               class="flex flex-col items-center gap-4 py-10 px-5 text-ink-600 dark:text-bone-600 text-center [animation:fadeIn_300ms_var(--ease)_both]"
             >
               <app-spinner size="md" />
-              <span class="text-sm md:text-lg italic">{{
+              <span class="text-sm lg:text-lg italic">{{
                 t().loadingSongs
               }}</span>
             </div>
           } @else if (tracks().length === 0) {
             <div
-              class="text-center py-10 px-5 text-ink-700 dark:text-bone-700 text-sm md:text-lg [animation:fadeIn_300ms_var(--ease)_both]"
+              class="text-center py-10 px-5 text-ink-700 dark:text-bone-700 text-sm lg:text-lg [animation:fadeIn_300ms_var(--ease)_both]"
             >
               {{ t().noSongsAvailable }}
             </div>
@@ -267,17 +267,17 @@ import { SuperuserService } from '../../core/superuser/superuser.service';
             class="flex flex-col items-center gap-4 py-10 px-5 text-ink-600 dark:text-bone-600 text-center [animation:fadeIn_300ms_var(--ease)_both]"
           >
             <app-spinner size="md" />
-            <span class="text-sm md:text-lg italic">{{ t().loadingReleases }}</span>
+            <span class="text-sm lg:text-lg italic">{{ t().loadingReleases }}</span>
           </div>
         } @else {
           @for (section of releaseSections(); track section.title) {
             <div class="flex flex-col gap-4">
               <h2
-                class="font-body text-xs md:text-base text-ink-700 dark:text-bone-700 font-semibold tracking-[0.05em] uppercase m-0"
+                class="font-body text-xs lg:text-base text-ink-700 dark:text-bone-700 font-semibold tracking-[0.05em] uppercase m-0"
               >
                 {{ section.title }}
               </h2>
-              <div class="grid grid-cols-3 md:grid-cols-4 gap-2 gap-y-3">
+              <div class="grid grid-cols-3 lg:grid-cols-4 gap-2 gap-y-3">
                 @for (item of section.items; track item.id; let i = $index) {
                   <div
                     class="flex flex-col gap-1 group release-item"
@@ -290,27 +290,27 @@ import { SuperuserService } from '../../core/superuser/superuser.service';
                     >
                       <app-cover [name]="item.name" [coverUrl]="item.coverUrl" />
                       <div
-                        class="absolute bottom-1 right-1 flex gap-1 md:opacity-0 md:group-hover:opacity-100 transition-opacity"
+                        class="absolute bottom-1 right-1 flex gap-1 lg:opacity-0 lg:group-hover:opacity-100 transition-opacity"
                       >
                         <button
                           appBtn
                           variant="add"
                           [added]="isInWishlist(item.id)"
                           (click)="toggleReleaseWishlist($event, item)"
-                          class="max-md:w-8 max-md:h-8 shadow-md border border-solid border-ink-200"
+                          class="!w-8 !h-8 lg:!w-11 lg:!h-11 shadow-md border border-solid border-ink-200"
                         >
                           <app-icon
                             [name]="isInWishlist(item.id) ? 'check' : 'plus'"
-                            class="w-4 h-4 md:w-5 md:h-5"
+                            class="w-4 h-4 lg:w-5 lg:h-5"
                           />
                         </button>
                         <button
                           appBtn
                           variant="action"
-                          class="!w-7 !h-7 !bg-bone/90 dark:!bg-ink/90 shadow-md"
+                          class="!w-8 !h-8 lg:!w-11 lg:!h-11 !bg-bone/90 dark:!bg-ink/90 shadow-md"
                           (click)="onReleaseMoreClick($event, item)"
                         >
-                          <app-icon name="more" class="w-3 h-3 text-ink dark:text-bone" />
+                          <app-icon name="more" class="w-4 h-4 lg:w-5 lg:h-5 text-ink dark:text-bone" />
                         </button>
                       </div>
                     </div>
@@ -366,7 +366,7 @@ export class ArtistComponent implements OnInit {
   contextMenu = signal<{ x: number; y: number; item: Track | ReleaseItem; kind: 'track' | 'release' } | null>(null);
 
   get isMobile(): boolean {
-    return window.innerWidth < 768;
+    return window.innerWidth < 1024;
   }
 
   t = computed(() => this.languageService.t());

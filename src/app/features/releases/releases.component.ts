@@ -221,7 +221,7 @@ export class ReleasesComponent implements OnInit {
   contextMenu = signal<{ x: number; y: number; item: ReleaseItem } | null>(null);
 
   get isMobile(): boolean {
-    return window.innerWidth < 768;
+    return window.innerWidth < 1024;
   }
 
   t = computed(() => this.languageService.t());

@@ -125,21 +125,21 @@ import { ButtonComponent } from '../button/button.component';
         </div>
 
         <div class="flex items-center gap-2">
-          <button
-            class="flex-1 flex items-center text-ink font-display font-medium [&.added]:font-bold [&.added]:bg-ink italic [&.added]:not-italic [&.added]:text-bone [&.added]:dark:bg-bone  dark:text-bone [&.added]:dark:text-ink border border-ink dark:border-bone rounded-card uppercase px-4 py-1"
+           <button
+            class="flex-1 flex items-center justify-center h-11 text-ink font-display font-medium [&.added]:font-bold [&.added]:bg-ink italic [&.added]:not-italic [&.added]:text-bone [&.added]:dark:bg-bone  dark:text-bone [&.added]:dark:text-ink border border-ink dark:border-bone rounded-card uppercase px-4"
             [class.added]="isAdded()"
             (click)="onToggleWishlist(); $event.stopPropagation()"
           >
             @if (isAdded()) {
               <app-icon
                 name="check"
-                class="w-5 h-5 sm:w-6 sm:h-6"
+                class="w-5 h-5"
               />
               <span class="flex-1">{{ t().added }}</span>
             } @else {
               <app-icon
                 name="plus"
-                class="w-5 h-5 sm:w-6 sm:h-6"
+                class="w-5 h-5"
               />
               <span class="flex-1">{{ t().save }}</span>
             }
@@ -147,10 +147,10 @@ import { ButtonComponent } from '../button/button.component';
           <button
             appBtn
             variant="action"
-            class="!w-8 !h-8 shrink-0"
+            class="!w-11 !h-11 shrink-0"
             (click)="openMoreMenu($event)"
           >
-            <app-icon name="more" class="w-4 h-4 text-ink dark:text-bone" />
+            <app-icon name="more" class="w-5 h-5 text-ink dark:text-bone" />
           </button>
         </div>
       </div>
