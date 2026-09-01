@@ -6,6 +6,7 @@ import { TypeChipComponent } from '../type-chip/type-chip.component';
 import { PreviewService } from '../../../core/services/preview.service';
 import { IconComponent } from '../../icons/icon.component';
 import { LanguageService } from '../../../core/i18n/language.service';
+import { ButtonComponent } from '../button/button.component';
 
 @Component({
   selector: 'app-card-item',
@@ -17,6 +18,7 @@ import { LanguageService } from '../../../core/i18n/language.service';
     CoverComponent,
     TypeChipComponent,
     IconComponent,
+    ButtonComponent,
   ],
   styles: `
     .card[data-type='album']:hover .card-name,
@@ -122,25 +124,35 @@ import { LanguageService } from '../../../core/i18n/language.service';
           </span>
         </div>
 
-        <button
-          class="flex items-center text-ink font-display font-medium [&.added]:font-bold [&.added]:bg-ink italic [&.added]:not-italic [&.added]:text-bone [&.added]:dark:bg-bone  dark:text-bone [&.added]:dark:text-ink border border-ink dark:border-bone rounded-card uppercase px-4 py-1"
-          [class.added]="isAdded()"
-          (click)="onToggleWishlist(); $event.stopPropagation()"
-        >
-          @if (isAdded()) {
-            <app-icon
-              name="check"
-              class="w-5 h-5 sm:w-6 sm:h-6"
-            />
-            <span class="flex-1">{{ t().added }}</span>
-          } @else {
-            <app-icon
-              name="plus"
-              class="w-5 h-5 sm:w-6 sm:h-6"
-            />
-            <span class="flex-1">{{ t().save }}</span>
-          }
-        </button>
+        <div class="flex items-center gap-2">
+          <button
+            class="flex-1 flex items-center text-ink font-display font-medium [&.added]:font-bold [&.added]:bg-ink italic [&.added]:not-italic [&.added]:text-bone [&.added]:dark:bg-bone  dark:text-bone [&.added]:dark:text-ink border border-ink dark:border-bone rounded-card uppercase px-4 py-1"
+            [class.added]="isAdded()"
+            (click)="onToggleWishlist(); $event.stopPropagation()"
+          >
+            @if (isAdded()) {
+              <app-icon
+                name="check"
+                class="w-5 h-5 sm:w-6 sm:h-6"
+              />
+              <span class="flex-1">{{ t().added }}</span>
+            } @else {
+              <app-icon
+                name="plus"
+                class="w-5 h-5 sm:w-6 sm:h-6"
+              />
+              <span class="flex-1">{{ t().save }}</span>
+            }
+          </button>
+          <button
+            appBtn
+            variant="action"
+            class="!w-8 !h-8 shrink-0"
+            (click)="openMoreMenu($event)"
+          >
+            <app-icon name="more" class="w-4 h-4 text-ink dark:text-bone" />
+          </button>
+        </div>
       </div>
     </div>
   `,
@@ -155,6 +167,7 @@ export class CardItemComponent {
 
   toggleWishlist = output<ReleaseItem>();
   onAlbumClick = output<string>();
+  onMoreClick = output<{ item: ReleaseItem; x: number; y: number }>();
 
   t = computed(() => this.languageService.t());
   releaseItem = computed(() => this.item() as ReleaseItem);
@@ -187,6 +200,16 @@ export class CardItemComponent {
     } else {
       this.onAlbumClick.emit(this.releaseItem().id);
     }
+  }
+
+  openMoreMenu(event: MouseEvent): void {
+    event.stopPropagation();
+    const rect = (event.currentTarget as HTMLElement).getBoundingClientRect();
+    this.onMoreClick.emit({
+      item: this.releaseItem(),
+      x: rect.left,
+      y: rect.bottom,
+    });
   }
 
   async onPlayPreview(item: ReleaseItem) {

@@ -297,4 +297,27 @@ export class WishlistService {
       this.toastService.error(this.lang.t().toastError);
     }
   }
+
+  async clearDownloaded(): Promise<void> {
+    const downloaded = this.downloaded();
+    if (!downloaded.length) return;
+    try {
+      if (this.isDemoMode) {
+        const current = this._ownEntries();
+        const ids = new Set(downloaded.map((e) => e.id));
+        const updated = current.filter((e) => !ids.has(e.id));
+        this._ownEntries.set(updated);
+        if (current.length > 0) {
+          const uid = current[0].addedByUid;
+          const key = `wishlist-${uid}`;
+          localStorage.setItem(key, JSON.stringify(updated));
+        }
+      } else {
+        await Promise.all(downloaded.map((e) => deleteDoc(doc(this.firestore, 'wishlist', e.id!))));
+      }
+      this.toastService.success(this.lang.t().wishlistCleared);
+    } catch {
+      this.toastService.error(this.lang.t().toastError);
+    }
+  }
 }
