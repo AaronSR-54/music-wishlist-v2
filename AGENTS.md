@@ -11,15 +11,21 @@ ng test --include='**/wishlist.service.spec.ts'  # single test file
 
 ## Versioning
 
-Update `package.json` version on each commit. Bump the corresponding number based on commit type (`X.Y.Z` → `major.minor.patch`):
+**MANDATORY: every change MUST bump the version in `package.json`.** No change is considered complete until `package.json` `version` has been incremented — this includes changes that did not originate from a commit or that are not yet committed. Never leave the version untouched after editing code.
 
-| Commit type | Number to bump | Example |
+The version follows the SemVer pattern `major-minor-micro` (`X.Y.Z`), bumped according to the kind of change:
+
+| Change type | Number to bump | Example |
 |-------------|---------------|---------|
-| `fix:`, `perf:`, `refactor:`, `chore:` | 3rd (patch) | `0.10.0` → `0.10.1` |
+| `fix:`, `perf:`, `refactor:`, `chore:`, docs, styles | 3rd (micro / patch) | `0.10.0` → `0.10.1` |
 | `feat:`, `update:` | 2nd (minor) | `0.10.0` → `0.11.0` |
 | `BREAKING CHANGE`, `feat!:`, breaking refactors | 1st (major) | `0.10.0` → `1.0.0` |
 
-Reset lesser numbers to `0` when bumping a higher-order number (e.g., minor bump `0.10.0` → `0.11.0`; major bump `0.10.0` → `1.0.0`). The `scripts/generate-version.js` writes `src/version.json` from `package.json` on prebuild/prestart, so no manual version.json update needed.
+Rules:
+- Bump the highest-order number that applies and **reset every lesser number to `0`** (minor bump `0.10.0` → `0.11.0`; major bump `0.10.0` → `1.0.0`).
+- When several changes are grouped, use the most significant change type for the bump.
+- If you are about to commit and the version was not bumped during the change, bump it as part of that commit.
+- `scripts/generate-version.js` writes `src/version.json` from `package.json` on `prebuild`/`prestart`, so never edit `src/version.json` manually.
 
 ## Architecture
 Angular 20 SPA deployed on Vercel (free plan: max 12 serverless endpoints). Uses `@angular/build:application` builder (standalone bootstrap, no NgModules).
