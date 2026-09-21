@@ -124,33 +124,33 @@ import { ButtonComponent } from '../button/button.component';
           </span>
         </div>
 
-        <div class="flex items-center gap-2">
+        <div class="flex items-center gap-1.5 md:gap-2 min-w-0">
            <button
-            class="flex-1 flex items-center justify-center h-11 text-ink font-display font-medium [&.added]:font-bold [&.added]:bg-ink italic [&.added]:not-italic [&.added]:text-bone [&.added]:dark:bg-bone  dark:text-bone [&.added]:dark:text-ink border border-ink dark:border-bone rounded-card uppercase px-4"
+            class="flex-1 min-w-0 flex items-center justify-center gap-1 h-9 md:h-11 text-xs sm:text-sm md:text-base text-ink font-display font-medium [&.added]:font-bold [&.added]:bg-ink italic [&.added]:not-italic [&.added]:text-bone [&.added]:dark:bg-bone  dark:text-bone [&.added]:dark:text-ink border border-ink dark:border-bone rounded-card uppercase px-1.5 sm:px-3 md:px-4 overflow-hidden"
             [class.added]="isAdded()"
             (click)="onToggleWishlist(); $event.stopPropagation()"
           >
             @if (isAdded()) {
               <app-icon
                 name="check"
-                class="w-5 h-5"
+                class="w-4 h-4 md:w-5 md:h-5 shrink-0"
               />
-              <span class="flex-1">{{ t().added }}</span>
+              <span class="min-w-0 truncate">{{ t().added }}</span>
             } @else {
               <app-icon
                 name="plus"
-                class="w-5 h-5"
+                class="w-4 h-4 md:w-5 md:h-5 shrink-0"
               />
-              <span class="flex-1">{{ t().save }}</span>
+              <span class="min-w-0 truncate">{{ t().save }}</span>
             }
           </button>
           <button
             appBtn
             variant="action"
-            class="!w-11 !h-11 shrink-0"
+            class="!w-9 !h-9 md:!w-11 md:!h-11 shrink-0"
             (click)="openMoreMenu($event)"
           >
-            <app-icon name="more" class="w-5 h-5 text-ink dark:text-bone" />
+            <app-icon name="more" class="w-4 h-4 md:w-5 md:h-5 text-ink dark:text-bone" />
           </button>
         </div>
       </div>

@@ -30,11 +30,17 @@ import { CommonModule } from '@angular/common';
         -webkit-overflow-scrolling: touch;
         scroll-snap-type: x proximity;
         padding-inline: 12px;
+        scrollbar-width: none;
+        -ms-overflow-style: none;
       }
       .scroll-container::-webkit-scrollbar {
         display: none;
       }
       @media (min-width: 768px) {
+        .scroll-container {
+          scrollbar-width: thin;
+          -ms-overflow-style: auto;
+        }
         .scroll-container::-webkit-scrollbar {
           display: block;
           height: 6px;
