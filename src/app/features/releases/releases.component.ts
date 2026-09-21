@@ -1,17 +1,17 @@
 import {
   Component,
   computed,
+  DestroyRef,
   effect,
   inject,
   signal,
-  OnInit,
   ChangeDetectionStrategy,
 } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
-import { forkJoin, of, from } from 'rxjs';
-import { catchError, map } from 'rxjs/operators';
-import { SearchService } from '../../core/api/search.service';
+import { Observable, forkJoin, of, from } from 'rxjs';
+import { catchError, map, switchMap } from 'rxjs/operators';
 import { FavoritesService } from '../../core/firebase/favorites.service';
 import { WishlistService } from '../../core/firebase/wishlist.service';
 import { AuthService } from '../../core/auth/auth.service';
@@ -208,15 +208,15 @@ import { ToastService } from '../../shared/components/toast/toast.component';
     </div>
   `,
 })
-export class ReleasesComponent implements OnInit {
-  private searchSvc = inject(SearchService);
+export class ReleasesComponent {
   private favoritesSvc = inject(FavoritesService);
   private wishlistSvc = inject(WishlistService);
   private authSvc = inject(AuthService);
   private languageService = inject(LanguageService);
   private router = inject(Router);
   private toast = inject(ToastService);
-  private apiUrl = 'https://music-wishlist-v2.vercel.app/api';
+  private destroyRef = inject(DestroyRef);
+  private apiUrl = '/api';
 
   contextMenu = signal<{ x: number; y: number; item: ReleaseItem } | null>(null);
 
@@ -234,15 +234,12 @@ export class ReleasesComponent implements OnInit {
   animatingMonth = signal(false);
 
   private releasesCache = new Map<string, ReleaseItem[]>();
-  private currentCacheKey = '';
   private readonly CACHE_KEY = 'releasesCache';
-  private readonly NO_RELEASES_KEY = 'noReleasesArtists';
 
   favorites = this.favoritesSvc.favorites;
 
   private touchStartX = 0;
   private readonly SWIPE_THRESHOLD = 50;
-  private noReleasesArtists = new Set<string>();
 
   monthNames = computed(() => [
     this.t().jan, this.t().feb, this.t().mar, this.t().apr, this.t().may, this.t().jun,
@@ -271,20 +268,12 @@ export class ReleasesComponent implements OnInit {
     });
   }
 
-  ngOnInit() {}
-
   private loadCacheFromSession() {
     try {
       const cached = sessionStorage.getItem(this.CACHE_KEY);
       if (cached) {
         const parsed = JSON.parse(cached);
         this.releasesCache = new Map(Object.entries(parsed));
-      }
-
-      const noReleases = sessionStorage.getItem(this.NO_RELEASES_KEY);
-      if (noReleases) {
-        const arr: string[] = JSON.parse(noReleases);
-        this.noReleasesArtists = new Set(arr);
       }
     } catch {}
   }
@@ -293,7 +282,6 @@ export class ReleasesComponent implements OnInit {
     try {
       const cacheObj = Object.fromEntries(this.releasesCache);
       sessionStorage.setItem(this.CACHE_KEY, JSON.stringify(cacheObj));
-      sessionStorage.setItem(this.NO_RELEASES_KEY, JSON.stringify([...this.noReleasesArtists]));
     } catch {}
   }
 
@@ -337,29 +325,29 @@ export class ReleasesComponent implements OnInit {
     return this.wishlistSvc.entries().some((e) => e.trackId === itemId);
   }
 
-  private loadReleases(year: number, month: number, favorites: { artistId: string; name: string }[]) {
-    const cacheKey = `${year}-${month}`;
-
+  private loadReleases(
+    year: number,
+    month: number,
+    favorites: { artistId: string; name: string }[],
+  ) {
     if (favorites.length === 0) {
       this.allReleases.set([]);
-      this.currentCacheKey = '';
+      this.loading.set(false);
       return;
     }
 
-    if (this.releasesCache.has(cacheKey)) {
-      this.allReleases.set(this.releasesCache.get(cacheKey)!);
-      this.currentCacheKey = cacheKey;
-      return;
-    }
+    // Scope the cache to the current set of favorite artists so adding or
+    // removing a favorite invalidates previously cached (possibly empty)
+    // months.
+    const favoritesKey = favorites
+      .map((f) => f.artistId)
+      .sort()
+      .join(',');
+    const cacheKey = `${year}-${month}|${favoritesKey}`;
 
-    if (this.currentCacheKey && this.releasesCache.has(this.currentCacheKey)) {
-      this.allReleases.set(this.releasesCache.get(this.currentCacheKey)!);
-    }
-
-    const noReleaseKey = `${year}-${month}`;
-
-    if (this.noReleasesArtists.has(noReleaseKey)) {
-      this.allReleases.set([]);
+    const cached = this.releasesCache.get(cacheKey);
+    if (cached) {
+      this.allReleases.set(cached);
       this.loading.set(false);
       return;
     }
@@ -368,117 +356,115 @@ export class ReleasesComponent implements OnInit {
 
     const artistObservables = favorites.map((fav) =>
       from(
-        fetch(`${this.apiUrl}/artist-albums?id=${fav.artistId}`).then((r) =>
-          r.json(),
+        this.fetchJson(
+          `${this.apiUrl}/artist-albums?id=${encodeURIComponent(fav.artistId)}&limit=100`,
         ),
       ).pipe(
-        map((res: DReleasesResponse): { fav: { artistId: string; name: string }; releases: ReleaseItem[] } => ({
-          fav,
-          releases: (res.data ?? []).map((a: DeezerAlbum) => ({
-            id: String(a.id),
-            name: a.title,
-            artist: fav.name ?? '',
-            coverUrl: a.cover_big ?? a.cover_medium ?? '',
-            type: (a.record_type === 'single' ? 'single' : 'album') as TrackType,
-            releaseDate: a.release_date ?? '',
-            previewUrl: undefined,
-            artistId: a.artist?.id ? String(a.artist.id) : undefined,
-          })),
-        })),
-        catchError(() =>
-          of({
+        map(
+          (
+            res: DReleasesResponse,
+          ): {
+            fav: { artistId: string; name: string };
+            releases: ReleaseItem[];
+          } => ({
             fav,
-            releases: [] as ReleaseItem[],
+            releases: (res.data ?? []).map((a: DeezerAlbum) => ({
+              id: String(a.id),
+              name: a.title,
+              artist: fav.name ?? '',
+              coverUrl: a.cover_big ?? a.cover_medium ?? '',
+              type: (a.record_type === 'single'
+                ? 'single'
+                : 'album') as TrackType,
+              releaseDate: a.release_date ?? '',
+              previewUrl: undefined,
+              artistId: a.artist?.id ? String(a.artist.id) : undefined,
+            })),
           }),
         ),
+        catchError(() => of({ fav, releases: [] as ReleaseItem[] })),
       ),
     );
 
-    forkJoin(artistObservables).subscribe((results) => {
-      const allReleases = results.flatMap((r) => r.releases);
-
-      const seen = new Set<string>();
-      const deduplicated = allReleases.filter((r) => {
-        const key = `${r.id}:${r.type}`;
-        if (seen.has(key)) return false;
-        seen.add(key);
-        return true;
-      });
-
-      const filteredForMonth = deduplicated.filter((release) => {
-        if (!release.releaseDate) return false;
-        const [releaseYear, releaseMonth] = release.releaseDate
-          .split('-')
-          .slice(0, 2)
-          .map(Number);
-        return releaseYear === year && releaseMonth - 1 === month;
-      });
-
-      if (filteredForMonth.length === 0) {
-        this.noReleasesArtists.add(noReleaseKey);
-        this.allReleases.set([]);
-        this.releasesCache.set(cacheKey, []);
-        this.currentCacheKey = cacheKey;
-        this.loading.set(false);
-        this.saveCacheToSession();
-        return;
-      }
-
-      const singles = filteredForMonth.filter((r) => r.type === 'single');
-      const albums = filteredForMonth.filter((r) => r.type !== 'single');
-
-      if (singles.length === 0) {
-        const sorted = filteredForMonth.sort((a, b) => {
-          const dateA = new Date(a.releaseDate).getTime();
-          const dateB = new Date(b.releaseDate).getTime();
-          return dateB - dateA;
-        });
-
-        this.releasesCache.set(cacheKey, sorted);
-        this.currentCacheKey = cacheKey;
-        this.allReleases.set(sorted);
-        this.loading.set(false);
-        this.saveCacheToSession();
-        return;
-      }
-
-      const previewCalls = singles.map((s) =>
-        from(
-          fetch(`${this.apiUrl}/album-tracks?id=${s.id}`).then((r) =>
-            r.json(),
+    forkJoin(artistObservables)
+      .pipe(
+        map((results) => {
+          const seen = new Set<string>();
+          return results
+            .flatMap((r) => r.releases)
+            .filter((r) => {
+              const key = `${r.id}:${r.type}`;
+              if (seen.has(key)) return false;
+              seen.add(key);
+              return true;
+            })
+            .filter((release) => {
+              if (!release.releaseDate) return false;
+              const [releaseYear, releaseMonth] = release.releaseDate
+                .split('-')
+                .slice(0, 2)
+                .map(Number);
+              return releaseYear === year && releaseMonth - 1 === month;
+            });
+        }),
+        switchMap((filteredForMonth) => this.withPreviews(filteredForMonth)),
+        map((releases) =>
+          releases.sort(
+            (a, b) =>
+              new Date(b.releaseDate).getTime() -
+              new Date(a.releaseDate).getTime(),
           ),
-        ).pipe(
-          map((tracksRes: DAlbumTracksResponse) => ({
-            id: s.id,
-            previewUrl: tracksRes.data?.[0]?.preview
-              ? `/api/preview?url=${encodeURIComponent(tracksRes.data[0].preview)}`
-              : undefined,
-          })),
-          catchError(() => of({ id: s.id, previewUrl: undefined })),
         ),
-      );
+        takeUntilDestroyed(this.destroyRef),
+      )
+      .subscribe({
+        next: (sorted) => {
+          this.releasesCache.set(cacheKey, sorted);
+          this.allReleases.set(sorted);
+          this.loading.set(false);
+          this.saveCacheToSession();
+        },
+        error: () => this.loading.set(false),
+      });
+  }
 
-      forkJoin(previewCalls).subscribe((previews) => {
+  private withPreviews(releases: ReleaseItem[]): Observable<ReleaseItem[]> {
+    const singles = releases.filter((r) => r.type === 'single');
+    if (singles.length === 0) return of(releases);
+
+    const previewCalls = singles.map((s) =>
+      from(
+        this.fetchJson(
+          `${this.apiUrl}/album-tracks?id=${encodeURIComponent(s.id)}`,
+        ),
+      ).pipe(
+        map((tracksRes: DAlbumTracksResponse) => ({
+          id: s.id,
+          previewUrl: tracksRes.data?.[0]?.preview
+            ? `/api/preview?url=${encodeURIComponent(tracksRes.data[0].preview)}`
+            : undefined,
+        })),
+        catchError(() => of({ id: s.id, previewUrl: undefined })),
+      ),
+    );
+
+    return forkJoin(previewCalls).pipe(
+      map((previews) => {
         const previewMap = new Map(previews.map((p) => [p.id, p.previewUrl]));
-
-        const withPreviews = filteredForMonth.map((r) => ({
+        return releases.map((r) => ({
           ...r,
           previewUrl: previewMap.get(r.id),
         }));
+      }),
+    );
+  }
 
-        const sorted = withPreviews.sort((a, b) => {
-          const dateA = new Date(a.releaseDate).getTime();
-          const dateB = new Date(b.releaseDate).getTime();
-          return dateB - dateA;
-        });
-
-        this.releasesCache.set(cacheKey, sorted);
-        this.currentCacheKey = cacheKey;
-        this.allReleases.set(sorted);
-        this.loading.set(false);
-        this.saveCacheToSession();
-      });
-    });
+  private async fetchJson(url: string): Promise<any> {
+    const response = await fetch(url);
+    if (!response.ok) {
+      throw new Error(`Request failed: ${response.status}`);
+    }
+    return response.json();
   }
 
   openInYouTube(item: ReleaseItem) {

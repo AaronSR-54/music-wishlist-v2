@@ -30,10 +30,10 @@ Rules:
 ## Architecture
 Angular 20 SPA deployed on Vercel (free plan: max 12 serverless endpoints). Uses `@angular/build:application` builder (standalone bootstrap, no NgModules).
 
-### API endpoints (currently 10)
-`api/search.js`, `api/push.js`, `api/check-releases.js`, `api/album.js`, `api/album-tracks.js`, `api/track.js`, `api/preview.js`, `api/artist.js`, `api/artist-info.js`, `api/artist-albums.js`.
+### API endpoints (currently 12 — at the Vercel free-plan limit)
+`api/search.js`, `api/search/album.js`, `api/search/artist.js`, `api/push.js`, `api/check-releases.js`, `api/album.js`, `api/album-tracks.js`, `api/track.js`, `api/preview.js`, `api/artist.js`, `api/artist-info.js`, `api/artist-albums.js`.
 
-**Do not create new api/*.js files** unless strictly necessary — reuse existing endpoints via actions/parameters. Currently at 10/12 limit.
+**Do not create new api/*.js files** unless strictly necessary — reuse existing endpoints via actions/parameters. Currently at 12/12 limit.
 
 Vercel cron runs `api/check-releases` daily at 09:00 UTC.
 

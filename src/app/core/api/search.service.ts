@@ -27,7 +27,7 @@ interface SearchState {
 
 @Injectable({ providedIn: 'root' })
 export class SearchService {
-  private apiUrl = 'https://music-wishlist-v2.vercel.app/api';
+  private apiUrl = '/api';
   private savedState = signal<SearchState | null>(null);
 
   private albumCache = new Map<string, any>();
@@ -139,6 +139,7 @@ export class SearchService {
         this.artistTracksCache.set(artistId, tracks);
         return limit ? tracks.slice(0, limit) : tracks;
       }),
+      catchError(() => of([] as Track[])),
     );
   }
 
@@ -154,6 +155,7 @@ export class SearchService {
         this.artistCache.set(artistId, res);
         return res;
       }),
+      catchError(() => of(null as unknown as DArtistResponse)),
     );
   }
 
@@ -208,6 +210,7 @@ export class SearchService {
           }),
         );
       }),
+      catchError(() => of([] as ReleaseItem[])),
     );
   }
 

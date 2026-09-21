@@ -4,16 +4,72 @@
 //   match /artist-releases-cache/{document} { allow read, write: if request.auth != null; }
 
 import webpush from 'web-push';
+import jwt from 'jsonwebtoken';
 
 const PROJECT_ID = process.env.FIREBASE_PROJECT_ID;
 const FIREBASE_API_KEY = process.env.FIREBASE_API_KEY;
 const FIRESTORE_BASE = `https://firestore.googleapis.com/v1/projects/${PROJECT_ID}/databases/(default)/documents`;
 
-webpush.setVapidDetails(
-  process.env.VAPID_SUBJECT,
-  process.env.VAPID_PUBLIC_KEY,
-  process.env.VAPID_PRIVATE_KEY,
-);
+const VAPID_SUBJECT = process.env.VAPID_SUBJECT || 'mailto:hello@musicwishlist.app';
+
+if (process.env.VAPID_PUBLIC_KEY && process.env.VAPID_PRIVATE_KEY) {
+  try {
+    webpush.setVapidDetails(
+      VAPID_SUBJECT,
+      process.env.VAPID_PUBLIC_KEY,
+      process.env.VAPID_PRIVATE_KEY,
+    );
+  } catch (err) {
+    console.error('[check-releases] Failed to configure VAPID:', err.message);
+  }
+} else {
+  console.warn('[check-releases] Missing VAPID keys — push notifications disabled');
+}
+
+async function getServiceAccountToken() {
+  const clientEmail = process.env.FIREBASE_CLIENT_EMAIL;
+  const rawKey = process.env.FIREBASE_PRIVATE_KEY || '';
+  const privateKey = rawKey
+    .replace(/\\n/g, '\n')
+    .split('\n')
+    .map((line) => line.trim())
+    .join('\n');
+  if (!clientEmail || !privateKey) return null;
+
+  const now = Math.floor(Date.now() / 1000);
+
+  try {
+    const assertion = jwt.sign(
+      {
+        iss: clientEmail,
+        scope: 'https://www.googleapis.com/auth/cloud-platform',
+        aud: 'https://oauth2.googleapis.com/token',
+        exp: now + 3600,
+        iat: now,
+      },
+      privateKey,
+      { algorithm: 'RS256' },
+    );
+
+    const res = await fetch('https://oauth2.googleapis.com/token', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: new URLSearchParams({
+        grant_type: 'urn:ietf:params:oauth:grant-type:jwt-bearer',
+        assertion,
+      }),
+    });
+
+    if (!res.ok) {
+      console.error('[check-releases] OAuth2 token error:', await res.text());
+      return null;
+    }
+    return (await res.json()).access_token;
+  } catch (err) {
+    console.error('[check-releases] JWT signing error:', err.message);
+    return null;
+  }
+}
 
 const RECORD_TYPE_MAP = {
   album: 'Álbum',
@@ -92,6 +148,35 @@ async function listWhere(collection, fieldPath, op, value, token) {
   if (!r.ok) {
     const body = await r.text();
     throw new Error(`Firestore query ${collection} error ${r.status}: ${body}`);
+  }
+  const results = await r.json();
+  const docs = [];
+  for (const item of results) {
+    if (item.document) {
+      docs.push({
+        id: item.document.name.split('/').pop(),
+        fields: item.document.fields,
+      });
+    }
+  }
+  return docs;
+}
+
+async function listCollection(collection, token) {
+  const structuredQuery = {
+    from: [{ collectionId: collection }],
+  };
+  const r = await fetch(`${FIRESTORE_BASE}:runQuery`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify({ structuredQuery }),
+  });
+  if (!r.ok) {
+    const body = await r.text();
+    throw new Error(`Firestore list ${collection} error ${r.status}: ${body}`);
   }
   const results = await r.json();
   const docs = [];
@@ -333,10 +418,30 @@ export default async (req, res) => {
   try {
     const token = authHeader.slice(7);
 
-    // CRON_SECRET path — requires Firestore security rules that allow
-    // service-level access. Currently not supported — use the user token path.
-    if (token === process.env.CRON_SECRET) {
-      return res.status(501).json({ error: 'Cron path not yet available' });
+    // CRON_SECRET path — runs for every subscribed user using a service
+    // account token, which bypasses Firestore security rules.
+    if (process.env.CRON_SECRET && token === process.env.CRON_SECRET) {
+      const adminToken = await getServiceAccountToken();
+      if (!adminToken) {
+        return res
+          .status(500)
+          .json({ error: 'Service account not configured' });
+      }
+
+      const subs = await listCollection('push-subscriptions', adminToken);
+      const results = [];
+      for (const sub of subs) {
+        try {
+          results.push({
+            uid: sub.id,
+            ...(await run(sub.id, adminToken, 'cron')),
+          });
+        } catch (err) {
+          console.error(`[check-releases] cron run failed for ${sub.id}:`, err);
+          results.push({ uid: sub.id, error: err.message });
+        }
+      }
+      return res.status(200).json({ users: results.length, results });
     }
 
     const uid = await getUidFromToken(token);

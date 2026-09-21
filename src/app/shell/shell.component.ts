@@ -200,6 +200,11 @@ export class ShellComponent {
   }
 
   private getDefaultTab(): Tab {
+    const fromUrl = new URLSearchParams(window.location.search).get('tab');
+    if (fromUrl && ['releases', 'search', 'wishlist'].includes(fromUrl)) {
+      return fromUrl as Tab;
+    }
+
     const saved = localStorage.getItem('defaultTab') as Tab | null;
     return saved && ['releases', 'search', 'wishlist'].includes(saved)
       ? saved

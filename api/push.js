@@ -12,13 +12,21 @@ const FIRESTORE_BASE = `https://firestore.googleapis.com/v1/projects/${PROJECT_I
 
 const VAPID_SUBJECT = process.env.VAPID_SUBJECT || 'mailto:hello@musicwishlist.app';
 
-webpush.setVapidDetails(
-  VAPID_SUBJECT,
-  process.env.VAPID_PUBLIC_KEY,
-  process.env.VAPID_PRIVATE_KEY,
-);
+if (process.env.VAPID_PUBLIC_KEY && process.env.VAPID_PRIVATE_KEY) {
+  try {
+    webpush.setVapidDetails(
+      VAPID_SUBJECT,
+      process.env.VAPID_PUBLIC_KEY,
+      process.env.VAPID_PRIVATE_KEY,
+    );
+  } catch (err) {
+    console.error('[push] Failed to configure VAPID:', err.message);
+  }
+} else {
+  console.warn('[push] Missing VAPID keys — push notifications disabled');
+}
 
-async function getUidFromToken(idToken) {
+async function getUserFromToken(idToken) {
   const res = await fetch(
     `https://identitytoolkit.googleapis.com/v1/accounts:lookup?key=${FIREBASE_API_KEY}`,
     {
@@ -30,7 +38,7 @@ async function getUidFromToken(idToken) {
   if (!res.ok) throw new Error('Token verification failed');
   const { users } = await res.json();
   if (!users?.[0]) throw new Error('User not found');
-  return users[0].localId;
+  return { uid: users[0].localId, email: users[0].email ?? '' };
 }
 
 function toFirestoreValue(val) {
@@ -167,7 +175,7 @@ export default async (req, res) => {
   const idToken = authHeader.slice(7);
 
   try {
-    const uid = await getUidFromToken(idToken);
+    const { uid, email } = await getUserFromToken(idToken);
     const docUrl = `${FIRESTORE_BASE}/push-subscriptions/${uid}`;
 
     if (action === 'subscribe') {
@@ -246,6 +254,24 @@ export default async (req, res) => {
       const { ownerUid, downloadedBy, item } = req.body ?? {};
       if (!ownerUid || !downloadedBy || !item?.name) {
         return res.status(400).json({ error: 'Missing ownerUid, downloadedBy, or item.name' });
+      }
+
+      // Only a recipient the owner explicitly shared their wishlist with may
+      // trigger a notification for that owner. The share doc id is derived
+      // from the owner uid and the caller's normalized email, and Firestore
+      // rules only allow the recipient to read it.
+      const encodedEmail = (email || '')
+        .toLowerCase()
+        .replace(/[^a-z0-9]/g, '_');
+      const shareId = `${ownerUid}_${encodedEmail}`;
+      const shareRes = await fetch(
+        `${FIRESTORE_BASE}/wishlist-shares/${shareId}`,
+        { headers: { Authorization: `Bearer ${idToken}` } },
+      );
+      if (!shareRes.ok) {
+        return res
+          .status(403)
+          .json({ error: 'Not authorized to notify this user' });
       }
 
       const token = await getServiceAccountToken();

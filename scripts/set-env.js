@@ -34,6 +34,7 @@ const content = `export const environment = {
     messagingSenderId: '${process.env.FIREBASE_MESSAGING_SENDER_ID || ''}',
     appId: '${process.env.FIREBASE_APP_ID || ''}',
   },
+  vapidPublicKey: '${process.env.VAPID_PUBLIC_KEY || ''}',
 };
 `;
 

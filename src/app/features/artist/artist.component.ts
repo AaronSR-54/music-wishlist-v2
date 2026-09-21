@@ -433,42 +433,38 @@ export class ArtistComponent implements OnInit {
         const artistName = artist?.name ?? '';
 
         this.searchSvc
-          .getArtistAlbums(artistId, artistName)
+          .getArtistReleases(artistId, artistName)
           .pipe(takeUntilDestroyed(this.destroyRef))
-          .subscribe((albums) => {
-            this.albums.set(albums);
-            cacheEntry.albums = albums;
-            this.artistCacheSvc.set(artistId, cacheEntry);
-          });
+          .subscribe({
+            next: (releases) => {
+              const albums = releases.filter((r) => r.type === 'album');
+              const eps = releases.filter((r) => r.type === 'ep');
+              const singles = releases.filter((r) => r.type === 'single');
 
-        this.searchSvc
-          .getArtistEPs(artistId, artistName)
-          .pipe(takeUntilDestroyed(this.destroyRef))
-          .subscribe((eps) => {
-            this.eps.set(eps);
-            cacheEntry.eps = eps;
-            this.artistCacheSvc.set(artistId, cacheEntry);
-          });
-
-        this.searchSvc
-          .getArtistSingles(artistId, artistName)
-          .pipe(takeUntilDestroyed(this.destroyRef))
-          .subscribe((singles) => {
-            this.singles.set(singles);
-            cacheEntry.singles = singles;
-            this.loadingReleases.set(false);
-            this.artistCacheSvc.set(artistId, cacheEntry);
+              this.albums.set(albums);
+              this.eps.set(eps);
+              this.singles.set(singles);
+              cacheEntry.albums = albums;
+              cacheEntry.eps = eps;
+              cacheEntry.singles = singles;
+              this.loadingReleases.set(false);
+              this.artistCacheSvc.set(artistId, cacheEntry);
+            },
+            error: () => this.loadingReleases.set(false),
           });
       });
 
     this.searchSvc
       .getArtistTracks(artistId, 5)
       .pipe(takeUntilDestroyed(this.destroyRef))
-      .subscribe((tracks) => {
-        this.tracks.set(tracks);
-        cacheEntry.tracks = tracks;
-        this.loading.set(false);
-        this.artistCacheSvc.set(artistId, cacheEntry);
+      .subscribe({
+        next: (tracks) => {
+          this.tracks.set(tracks);
+          cacheEntry.tracks = tracks;
+          this.loading.set(false);
+          this.artistCacheSvc.set(artistId, cacheEntry);
+        },
+        error: () => this.loading.set(false),
       });
   }
 

@@ -299,7 +299,7 @@ export class WishlistService {
   }
 
   async clearDownloaded(): Promise<void> {
-    const downloaded = this.downloaded();
+    const downloaded = this.downloaded().filter((e) => e.isOwner);
     if (!downloaded.length) return;
     try {
       if (this.isDemoMode) {

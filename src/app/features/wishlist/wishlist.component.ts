@@ -191,7 +191,12 @@ export class WishlistComponent {
 
   @ViewChild('clearModal') clearModal!: ModalComponent;
 
-  activeTab = signal<WishlistTab>('pending');
+  activeTab = signal<WishlistTab>(
+    new URLSearchParams(window.location.search).get('wishlistTab') ===
+      'downloaded'
+      ? 'downloaded'
+      : 'pending',
+  );
   animatingTab = signal(false);
   contextMenu = signal<{ x: number; y: number; entry: WishlistEntry } | null>(
     null,

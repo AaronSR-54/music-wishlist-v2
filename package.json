@@ -1,6 +1,6 @@
 {
   "name": "music-wishlist-v2",
-  "version": "0.14.3",
+  "version": "0.15.0",
   "scripts": {
     "ng": "ng",
     "prestart": "node scripts/generate-version.js",

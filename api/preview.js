@@ -1,3 +1,21 @@
+const ALLOWED_HOSTS = [
+  'dzcdn.net',
+  'deezer.com',
+  'deezercdn.com',
+];
+
+function isAllowedUrl(target) {
+  try {
+    const parsed = new URL(target);
+    if (parsed.protocol !== 'https:') return false;
+    return ALLOWED_HOSTS.some(
+      (host) => parsed.hostname === host || parsed.hostname.endsWith(`.${host}`),
+    );
+  } catch {
+    return false;
+  }
+}
+
 export default async (req, res) => {
   const { url } = req.query;
 
@@ -5,8 +23,13 @@ export default async (req, res) => {
     return res.status(400).json({ error: 'Missing url parameter' });
   }
 
+  const target = decodeURIComponent(url);
+  if (!isAllowedUrl(target)) {
+    return res.status(400).json({ error: 'URL not allowed' });
+  }
+
   try {
-    const response = await fetch(decodeURIComponent(url), {
+    const response = await fetch(target, {
       headers: {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
         'Accept': '*/*',

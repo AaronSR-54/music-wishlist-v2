@@ -85,6 +85,8 @@ export class WishlistShareService {
   stopListeners(): void {
     this.unsubscribe.forEach((fn) => fn());
     this.unsubscribe = [];
+    this._sharesGiven.set([]);
+    this._sharesReceived.set([]);
   }
 
   async share(
