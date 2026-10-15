@@ -6,6 +6,7 @@ npm start              # dev server at localhost:4200 (uses proxy.conf.json)
 npm run build          # production build → dist/music-wishlist-v2/browser/
 npm test               # Karma/Jasmine unit tests
 ng test --include='**/wishlist.service.spec.ts'  # single test file
+npm run android        # TWA: sync android version from package.json + build signed AAB + mapping.txt
 ```
 **Note:** Demo mode is activated via `?demo` query param (no separate npm script). `prestart` and `prebuild` both run `scripts/generate-version.js`; `prebuild` also runs `scripts/set-env.js`.
 
@@ -78,6 +79,8 @@ Angular signals throughout (no NgRx):
 - Demo mode stores data in `localStorage` keyed by `wishlist-{uid}`
 - `SearchService` caches album, albumTracks, artist, artistTracks in-memory; search state in `sessionStorage`
 - `shell.component.ts` has two layouts (desktop ≥768px / mobile) with 3 tabs: releases, search, wishlist (state-driven via `activeTab` signal, saved to localStorage as `defaultTab`)
+- Installed PWA `theme-color` is dynamic: `ThemeService` updates the managed `theme-color` meta (`#22201f` dark / `#e5e0d8` light) whenever the effective theme changes; an inline script in `src/index.html` applies the saved/system theme before Angular loads to avoid a flash. `public/manifest.json` is the source of truth for colors (`theme_color`/`background_color` = `#22201f`).
+- Android ships as a **Bubblewrap TWA** in `android/` (package `com.musicwishlist.app`). `npm run android` runs `scripts/sync-android-version.js` (derives `appVersionCode` = `major*10000+minor*100+patch` from `package.json`) then `bubblewrap update --skipVersionUpgrade` + `bubblewrap build`. Keystore, password and `~/.bubblewrap/config.json` (JDK 17 + Android SDK paths) live outside the repo. Digital Asset Links at `public/.well-known/assetlinks.json` (upload-key SHA-256). Publish via the `google-play-console` skill's `play.mjs`; see `store/README.md`.
 
 ### Key paths
 | Path | Purpose |
@@ -98,6 +101,11 @@ Angular signals throughout (no NgRx):
 | `src/app/core/theme/theme.service.ts` | Light/dark/system theme |
 | `src/app/core/i18n/language.service.ts` | es/en translations |
 | `src/app/core/version/version.service.ts` | Fetch `/version.json` |
+| `android/` | Bubblewrap TWA project (`twa-manifest.json`, Gradle) |
+| `scripts/sync-android-version.js` | Derive Android version from `package.json` |
+| `scripts/android-release.js` | `npm run android`: version sync + signed AAB + mapping |
+| `store/README.md` | Google Play release flow and prerequisites |
+| `public/.well-known/assetlinks.json` | Digital Asset Links (TWA verification) |
 | `src/app/shell/shell.component.ts` | Root layout (desktop/mobile with 3 tabs) |
 | `src/app/features/login/` | Login page |
 | `src/app/features/wishlist/` | Wishlist tab |

@@ -127,6 +127,18 @@ src/app/
 
 The app deploys automatically to Vercel via the included `vercel.json` configuration. API endpoints are deployed as serverless functions.
 
+### PWA theming
+
+The installed app's `theme-color` (status bar / browser chrome) follows the active theme. `ThemeService` writes the effective light/dark background color into the managed `theme-color` meta on every change, and a small inline script in `src/index.html` applies the saved/system theme before Angular loads to avoid a flash. `src/index.html`, `public/meta-tags.html` and `public/manifest.json` all use `#22201f` (dark) as the default; the manifest is the source of truth for colors.
+
+## Android app (Google Play)
+
+The app also ships as a Trusted Web Activity (TWA) wrapping the hosted PWA, packaged with Bubblewrap. Build a signed App Bundle with `npm run android` and publish it via the Google Play Developer API — see [`store/README.md`](store/README.md) for the full release flow, prerequisites and the closed-testing requirement.
+
+**Fallback**: if Digital Asset Links verification fails (missing/mismatched `.well-known/assetlinks.json`), the TWA degrades to a Custom Tab that shows the URL bar (`fallbackType: "customtabs"`).
+
+**Status-bar limitation**: unlike the installed PWA — whose `theme-color` follows the active theme dynamically — the TWA's native status/navigation bars are fixed at build time from `themeColor`/`navigationColor` in `android/twa-manifest.json` (both pinned to the dark `#22201f`). Dynamic runtime theming of TWA system bars is not supported yet.
+
 ## License
 
 MIT
