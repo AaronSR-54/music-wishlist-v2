@@ -470,11 +470,16 @@ export default async (req, res) => {
       }
 
       const subs = await listCollection('push-subscriptions', adminToken);
+      // The cache namespace defaults to "cron". A different ?cacheId= runs
+      // against a clean cache, which is handy for one-off verification.
+      const cronCacheId =
+        new URL(req.url, 'http://localhost').searchParams.get('cacheId') ||
+        'cron';
       const results = await mapWithConcurrency(subs, USER_CONCURRENCY, async (sub) => {
         try {
           return {
             uid: sub.id,
-            ...(await run(sub.id, adminToken, 'cron')),
+            ...(await run(sub.id, adminToken, cronCacheId)),
           };
         } catch (err) {
           console.error(`[check-releases] cron run failed for ${sub.id}:`, err);
