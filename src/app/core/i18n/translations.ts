@@ -125,6 +125,14 @@ export const translations = {
     loginError: 'Error al iniciar sesión. Inténtalo de nuevo.',
     newVersion: 'Nueva versión disponible',
     update: 'Actualizar',
+    deleteAccount: 'Eliminar cuenta',
+    deleteAccountTitle: 'Eliminar cuenta',
+    deleteAccountBody:
+      'Se eliminarán tu cuenta y todos tus datos (lista de deseos, artistas favoritos y comparticiones). Esta acción no se puede deshacer.',
+    deleteAccountConfirm: 'Eliminar',
+    deletingAccount: 'Eliminando...',
+    deleteAccountDone: 'Cuenta eliminada',
+    deleteAccountError: 'No se pudo eliminar la cuenta. Inténtalo de nuevo.',
   },
   en: {
     defaultPage: 'Home page',
@@ -252,6 +260,14 @@ export const translations = {
     loginError: 'Sign-in failed. Please try again.',
     newVersion: 'New version available',
     update: 'Update',
+    deleteAccount: 'Delete account',
+    deleteAccountTitle: 'Delete account',
+    deleteAccountBody:
+      'Your account and all your data (wishlist, favorite artists and shares) will be deleted. This action cannot be undone.',
+    deleteAccountConfirm: 'Delete',
+    deletingAccount: 'Deleting...',
+    deleteAccountDone: 'Account deleted',
+    deleteAccountError: 'Could not delete the account. Please try again.',
   },
 } as const;
 

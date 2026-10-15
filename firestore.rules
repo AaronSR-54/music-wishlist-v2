@@ -47,6 +47,10 @@ service cloud.firestore {
         request.auth.uid == resource.data.wishlistOwnerId ||
         request.auth.token.email == resource.data.invitedEmail
       );
+      allow delete: if request.auth != null && (
+        request.auth.uid == resource.data.wishlistOwnerId ||
+        request.auth.token.email == resource.data.invitedEmail
+      );
     }
 
     match /wishlist-shares/{document=**} {
@@ -55,7 +59,10 @@ service cloud.firestore {
         request.auth.token.email == resource.data.recipientEmail
       );
       allow create: if request.auth != null && request.auth.uid == request.resource.data.ownerUid;
-      allow delete: if request.auth != null && request.auth.uid == resource.data.ownerUid;
+      allow delete: if request.auth != null && (
+        request.auth.uid == resource.data.ownerUid ||
+        request.auth.token.email == resource.data.recipientEmail
+      );
       allow update: if request.auth != null && (
         (
           request.auth.token.email == resource.data.recipientEmail &&

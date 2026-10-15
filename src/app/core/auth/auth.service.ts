@@ -10,6 +10,8 @@ import { Router } from '@angular/router';
 import {
   Auth,
   GoogleAuthProvider,
+  deleteUser,
+  reauthenticateWithPopup,
   signInWithPopup,
   signOut,
   authState,
@@ -18,6 +20,7 @@ import { toSignal } from '@angular/core/rxjs-interop';
 import { WishlistService } from '../firebase/wishlist.service';
 import { FavoriteArtistsService } from '../firebase/favorite-artists.service';
 import { WishlistShareService } from '../firebase/wishlist-share.service';
+import { AccountDeletionService } from '../firebase/account-deletion.service';
 
 @Injectable({ providedIn: 'root' })
 export class AuthService {
@@ -26,6 +29,7 @@ export class AuthService {
   private wishlistService = inject(WishlistService);
   private favoriteArtistsService = inject(FavoriteArtistsService);
   private wishlistShareService = inject(WishlistShareService);
+  private accountDeletion = inject(AccountDeletionService);
   private ngZone = inject(NgZone);
 
   private firebaseUser = toSignal(authState(this.auth), { initialValue: null });
@@ -98,6 +102,38 @@ export class AuthService {
     await signOut(this.auth).catch(() => {});
     this.demoMode.set(false);
     this.router.navigate(['/login']);
+  }
+
+  async reauthenticate(): Promise<void> {
+    const user = this.auth.currentUser;
+    if (!user) throw new Error('no-user');
+
+    const provider = new GoogleAuthProvider();
+    await reauthenticateWithPopup(user, provider);
+  }
+
+  async deleteAccount(): Promise<void> {
+    const user = this.auth.currentUser;
+    if (!user || this.demoMode()) throw new Error('no-user');
+
+    // Refresh the credential first: deleteUser() fails with
+    // auth/requires-recent-login for stale sessions. If the user cancels the
+    // popup this throws and nothing is deleted.
+    await this.reauthenticate();
+
+    const idToken = await user.getIdToken();
+    await this.accountDeletion.deleteAccountData({
+      uid: user.uid,
+      email: user.email ?? '',
+      idToken,
+    });
+
+    await deleteUser(user);
+
+    this.wishlistService.stopListener();
+    this.demoMode.set(false);
+    await signOut(this.auth).catch(() => {});
+    await this.router.navigate(['/login']);
   }
 
   setDemoMode(enabled: boolean): void {
