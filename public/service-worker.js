@@ -65,14 +65,20 @@ self.addEventListener('fetch', (event) => {
   // Document navigations: network-first so a fresh index.html is never
   // pinned to stale hashed bundles. Fall back to the cached shell offline.
   if (request.mode === 'navigate' || request.destination === 'document') {
+    // Only the app shell is stored as the offline fallback; other documents
+    // (e.g. /privacy.html) are served from the network without clobbering it.
+    const isShell =
+      url.pathname === '/' || url.pathname === '/index.html';
     event.respondWith(
       fetch(request)
         .then((response) => {
-          const copy = response.clone();
-          caches
-            .open(CACHE_NAME)
-            .then((cache) => cache.put(OFFLINE_URL, copy))
-            .catch(() => {});
+          if (isShell) {
+            const copy = response.clone();
+            caches
+              .open(CACHE_NAME)
+              .then((cache) => cache.put(OFFLINE_URL, copy))
+              .catch(() => {});
+          }
           return response;
         })
         .catch(() =>

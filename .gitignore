@@ -63,3 +63,8 @@ Thumbs.db
 *.keystore
 *.jks
 .env*
+
+# Firebase emulator
+firestore-debug.log
+firestore-debug.log.*
+ui-debug.log

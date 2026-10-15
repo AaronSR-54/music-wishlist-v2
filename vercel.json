@@ -45,7 +45,7 @@
   ],
   "rewrites": [
     { "source": "/api/:path*", "destination": "/api/:path*" },
-    { "source": "/:path((?!.*\\.(?:js|css|woff|ttf|otf|svg|png|jpg|gif|ico|json|map)).*)", "destination": "/index.html" }
+    { "source": "/:path((?!.*\\.(?:js|css|woff|ttf|otf|svg|png|jpg|gif|ico|json|map|html)).*)", "destination": "/index.html" }
   ],
   "crons": [
     { "path": "/api/check-releases", "schedule": "0 9 * * *" }
