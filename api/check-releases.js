@@ -474,7 +474,7 @@ export default async (req, res) => {
       // against a clean cache, which is handy for one-off verification.
       const cronCacheId =
         new URL(req.url, 'http://localhost').searchParams.get('cacheId') ||
-        'cron';
+        'crontest';
       const results = await mapWithConcurrency(subs, USER_CONCURRENCY, async (sub) => {
         try {
           return {
