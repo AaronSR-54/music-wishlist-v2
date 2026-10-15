@@ -347,7 +347,11 @@ async function run(uid, idToken, clientId) {
       const albumsToNotify = albums.filter((a) => {
         const isNew = isWithinWindow(a.release_date, RELEASE_WINDOW_DAYS);
         const alreadyNotified = notifiedIds.includes(String(a.id));
-        console.log(`[check-releases]   album=${a.title} release_date=${a.release_date} isNew=${isNew} alreadyNotified=${alreadyNotified}`);
+        // Only log actual candidates: logging every album floods the runtime
+        // logs (which are capped) and hides the end of the run.
+        if (isNew) {
+          console.log(`[check-releases]   NEW album=${a.title} release_date=${a.release_date} alreadyNotified=${alreadyNotified}`);
+        }
         return isNew && !alreadyNotified;
       });
 
