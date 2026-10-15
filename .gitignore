@@ -62,3 +62,4 @@ Thumbs.db
 *.idsig
 *.keystore
 *.jks
+.env*

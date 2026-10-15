@@ -14,7 +14,7 @@
 - [x] 2.1 Confirm the final `applicationId` (reverse-domain) with the user before generating the project; record the chosen value in `android/twa-manifest.json`.
 - [x] 2.2 Generate the TWA project with `bubblewrap init --manifest https://<prod-host>/manifest.json` into `android/`, setting `themeColor`/`navigationColor` to the app default; verify `android/app/build.gradle` and `android/twa-manifest.json` exist with the expected `packageId`, host, and colors.
 - [x] 2.3 Create the signing keystore outside the repo (e.g. `~/.config/music-wishlist/android.keystore`, `chmod 600`) and compute its SHA-256 fingerprint; verify `keytool -list` prints the fingerprint and the keystore is not tracked by git.
-- [ ] 2.4 Add `public/.well-known/assetlinks.json` with the package name and fingerprint, and a `vercel.json` header rule forcing `Content-Type: application/json`; after deploy verify `curl -I` returns the JSON type and the Google statement-list check validates the relation.
+- [x] 2.4 Add `public/.well-known/assetlinks.json` with the package name and fingerprint, and a `vercel.json` header rule forcing `Content-Type: application/json`; after deploy verify `curl -I` returns the JSON type and the Google statement-list check validates the relation.
 - [x] 2.5 Set `fallbackType: "customtabs"` and document the fallback (URL bar shown when asset links fail) plus the static-TWA-status-bar limitation in `README.md`; verify the documented text matches the actual config.
 
 ## 3. Versioned AAB build
