@@ -103,14 +103,19 @@ claves VAPID propias), sin acceso a Vercel ni a un Android físico:
   responden 410 sin afectar a las demás.
 - **La clave pública VAPID del cliente es válida** (punto P-256 sin comprimir, 65 bytes).
 
-Por tanto la causa raíz más probable en dispositivos reales es de entorno o de estado del
-dispositivo, no de código:
+**Causa raíz confirmada (prueba en dispositivo real):** la suscripción del navegador y su
+registro en Firestore se habían desincronizado. El navegador conservaba una suscripción
+push (`isSubscribed` mostraba "Enabled" y aparecía el botón de prueba), pero
+`push-subscriptions/{uid}` no existía en el servidor, así que `action: 'test'` respondía 404
+"no subscription found". Al re-suscribir (Desactivar → Activar) se reescribió el registro y
+la notificación llegó; con el botón de prueba aparecía el toast de error antes de hacerlo.
 
-- Claves VAPID ausentes o desalineadas en Vercel, o `FIREBASE_PRIVATE_KEY`/`CRON_SECRET`
-  sin configurar. **No verificable desde este entorno** (sin Vercel CLI ni token): requiere
-  revisar el panel de Vercel.
-- Un `ngsw-worker.js` residual en PWAs ya instaladas. Mitigado con la limpieza de
-  `src/main.ts`.
+Todas las variables de entorno existen en Vercel (`vercel env ls`: `VAPID_PUBLIC_KEY`,
+`VAPID_PRIVATE_KEY`, `FIREBASE_PRIVATE_KEY`, `FIREBASE_CLIENT_EMAIL`, `CRON_SECRET`,
+`VAPID_SUBJECT`, `RELEASE_WINDOW_DAYS`) y la entrega real funciona, así que las claves VAPID
+del cliente y del servidor coinciden.
 
-Queda fuera de este entorno: leer variables de entorno y logs de Vercel (tareas 1.1, 1.2) y
-validar en un Android real (7.1).
+**Arreglo aplicado:** `PushNotificationService` ahora reconcilia al autenticarse (reenvía al
+servidor la suscripción del navegador si existe) y `sendTest` se recupera ante un 404
+re-registrando y reintentando, para que la divergencia no vuelva a dejar las notificaciones
+sin funcionar.

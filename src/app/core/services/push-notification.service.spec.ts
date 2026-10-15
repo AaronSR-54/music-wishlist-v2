@@ -118,4 +118,27 @@ describe('PushNotificationService', () => {
 
     expect(await svc.sendTest()).toBeTrue();
   });
+
+  it('sendTest re-registers the browser subscription and retries after a 404', async () => {
+    let testCalls = 0;
+    httpPost.and.callFake((_url: string, body: { action: string }) => {
+      if (body.action === 'test') {
+        testCalls++;
+        return testCalls === 1
+          ? throwError(() => ({
+              status: 404,
+              error: { error: 'No push subscription found' },
+            }))
+          : of({ ok: true });
+      }
+      return of({ ok: true });
+    });
+    const svc = TestBed.inject(PushNotificationService);
+
+    expect(await svc.sendTest()).toBeTrue();
+    const subscribeCall = httpPost.calls
+      .allArgs()
+      .find((args) => (args[1] as { action: string }).action === 'subscribe');
+    expect(subscribeCall).toBeTruthy();
+  });
 });

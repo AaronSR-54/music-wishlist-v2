@@ -37,6 +37,19 @@ notificaciones de forma independiente.
 - **WHEN** el usuario desactiva notificaciones en un dispositivo
 - **THEN** solo se elimina la suscripción de ese dispositivo y el resto sigue recibiendo avisos
 
+### Requirement: Reconciliación de la suscripción con el servidor
+La app SHALL registrar en el servidor la suscripción push ya existente del navegador cuando
+el usuario está autenticado, de modo que la suscripción del dispositivo y su registro en el
+servidor permanezcan sincronizados.
+
+#### Scenario: Suscripción del navegador sin registro en el servidor
+- **WHEN** el navegador ya tiene una suscripción push pero el servidor no tiene registro de ese dispositivo
+- **THEN** la app reenvía la suscripción al servidor al autenticarse el usuario
+
+#### Scenario: Recuperación al probar
+- **WHEN** el envío de prueba falla porque el servidor no conoce la suscripción
+- **THEN** la app vuelve a registrar la suscripción y reintenta el envío
+
 ### Requirement: Entrega de notificaciones al dispositivo suscrito
 El servidor SHALL enviar la notificación a todas las suscripciones vigentes del usuario
 destinatario y SHALL registrar el resultado de cada envío.

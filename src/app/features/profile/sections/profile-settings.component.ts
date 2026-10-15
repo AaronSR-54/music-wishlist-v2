@@ -328,9 +328,16 @@ export class ProfileSettingsComponent {
     this.testing.set(true);
     try {
       const ok = await this.pushSvc.sendTest();
-      this.toast[ok ? 'success' : 'error'](
-        ok ? this.t().toastNotificationTestSent : this.t().toastNotificationTestFailed,
-      );
+      if (ok) {
+        this.toast.success(this.t().toastNotificationTestSent);
+      } else {
+        const detail = this.pushSvc.lastError();
+        this.toast.error(
+          detail
+            ? `${this.t().toastNotificationTestFailed} (${detail})`
+            : this.t().toastNotificationTestFailed,
+        );
+      }
     } finally {
       this.testing.set(false);
     }

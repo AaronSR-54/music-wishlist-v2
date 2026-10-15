@@ -1,4 +1,4 @@
-import { Injectable, signal, inject, computed } from '@angular/core';
+import { Injectable, signal, inject, computed, effect } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { firstValueFrom } from 'rxjs';
 import { AuthService } from '../auth/auth.service';
@@ -47,16 +47,45 @@ export class PushNotificationService {
 
   constructor() {
     if (!this.isSupported()) return;
-    this.syncSubscriptionState();
+    // Keep the server-side registration in sync with the browser subscription.
+    // The browser subscription can outlive (or precede) the Firestore record,
+    // for example after the server cleaned it up as stale; without this the
+    // test/notification flow would hit "no subscription found".
+    effect(() => {
+      const user = this.auth.currentUser();
+      if (user && !this.auth.demoMode()) void this.reconcile();
+    });
   }
 
-  private async syncSubscriptionState(): Promise<void> {
+  private async reconcile(): Promise<void> {
+    if (!this.isSupported() || this.auth.demoMode()) return;
+    let sub: PushSubscription | null = null;
     try {
       const reg = await navigator.serviceWorker.ready;
-      const sub = await reg.pushManager.getSubscription();
-      this.isSubscribed.set(!!sub);
+      sub = await reg.pushManager.getSubscription();
     } catch {
-      this.isSubscribed.set(false);
+      return;
+    }
+    this.isSubscribed.set(!!sub);
+    if (!sub) return;
+
+    const user = this.auth.currentUser();
+    if (!user) return;
+    try {
+      const token = await user.getIdToken();
+      await firstValueFrom(
+        this.http.post(
+          '/api/push',
+          {
+            action: 'subscribe',
+            subscription: sub.toJSON(),
+            clientId: this.getClientId(),
+          },
+          { headers: { Authorization: `Bearer ${token}` } },
+        ),
+      );
+    } catch (err) {
+      console.error('[PushNotification] reconcile error:', err);
     }
   }
 
@@ -109,7 +138,7 @@ export class PushNotificationService {
       this.isSubscribed.set(true);
       return 'granted';
     } catch (err) {
-      this.lastError.set(err instanceof Error ? err.message : String(err));
+      this.lastError.set(errorMessage(err));
       console.error('[PushNotification] subscribe error:', err);
       if (sub) await sub.unsubscribe().catch(() => {});
       return 'error';
@@ -142,7 +171,7 @@ export class PushNotificationService {
       }
       this.isSubscribed.set(false);
     } catch (err) {
-      this.lastError.set(err instanceof Error ? err.message : String(err));
+      this.lastError.set(errorMessage(err));
     } finally {
       this.loading.set(false);
     }
@@ -151,7 +180,8 @@ export class PushNotificationService {
   async sendTest(): Promise<boolean> {
     this.lastError.set(null);
     if (!this.isSupported() || this.auth.demoMode()) return false;
-    try {
+
+    const post = async () => {
       const user = this.auth.currentUser();
       if (!user) throw new Error('No authenticated user');
       const token = await user.getIdToken();
@@ -159,18 +189,38 @@ export class PushNotificationService {
         this.http.post(
           '/api/push',
           { action: 'test' },
-          {
-            headers: { Authorization: `Bearer ${token}` },
-          },
+          { headers: { Authorization: `Bearer ${token}` } },
         ),
       );
+    };
+
+    try {
+      await post();
       return true;
     } catch (err) {
-      this.lastError.set(err instanceof Error ? err.message : String(err));
+      // The server may not know about this browser's subscription yet (for
+      // example if it was cleaned up as stale). Re-register it and retry once.
+      if ((err as { status?: number })?.status === 404) {
+        await this.reconcile();
+        try {
+          await post();
+          return true;
+        } catch (retryErr) {
+          this.lastError.set(errorMessage(retryErr));
+          console.error('[PushNotification] sendTest retry error:', retryErr);
+          return false;
+        }
+      }
+      this.lastError.set(errorMessage(err));
       console.error('[PushNotification] sendTest error:', err);
       return false;
     }
   }
+}
+
+function errorMessage(err: unknown): string {
+  const httpError = err as { error?: { error?: string }; message?: string };
+  return httpError?.error?.error ?? httpError?.message ?? String(err);
 }
 
 function urlBase64ToUint8Array(base64String: string): Uint8Array {
