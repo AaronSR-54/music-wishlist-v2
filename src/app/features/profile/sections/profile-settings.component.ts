@@ -111,34 +111,16 @@ type Language = 'es' | 'en';
               {{ t().notificationsBlocked }}
             </span>
           } @else {
-            <div class="flex-1 flex flex-col gap-2">
-              <span class="text-sm text-ink-600 dark:text-bone-600 italic">
-                {{ notificationsStatus() }}
-              </span>
-
-              <div class="flex flex-col sm:flex-row gap-2">
-                <button
-                  class="flex-1 px-4 py-2 rounded-lg font-bold uppercase transition-all duration-300"
-                  [class]="pushSvc.isSubscribed()
-                    ? 'bg-accent text-bone dark:bg-accent dark:text-bone shadow-sm'
-                    : 'bg-bone dark:bg-ink-200 dark:text-bone border-2 border-bone-800 dark:border-ink-300 hover:bg-bone-700 dark:hover:bg-ink-300'"
-                  [disabled]="pushSvc.loading()"
-                  (click)="toggleNotifications()"
-                >
-                  {{ pushSvc.isSubscribed() ? t().disableNotifications : t().enableNotifications }}
-                </button>
-
-                @if (pushSvc.isSubscribed()) {
-                  <button
-                    class="flex-1 px-4 py-2 rounded-lg font-bold uppercase bg-bone dark:bg-ink-200 dark:text-bone border-2 border-bone-800 dark:border-ink-300 hover:bg-bone-700 dark:hover:bg-ink-300 transition-all duration-300"
-                    [disabled]="testing()"
-                    (click)="sendTestNotification()"
-                  >
-                    {{ t().sendTestNotification }}
-                  </button>
-                }
-              </div>
-            </div>
+            <button
+              class="w-full px-4 py-2 rounded-lg font-bold uppercase transition-all duration-300"
+              [class]="pushSvc.isSubscribed()
+                ? 'bg-accent text-bone dark:bg-accent dark:text-bone shadow-sm'
+                : 'bg-bone dark:bg-ink-200 dark:text-bone border-2 border-bone-800 dark:border-ink-300 hover:bg-bone-700 dark:hover:bg-ink-300'"
+              [disabled]="pushSvc.loading()"
+              (click)="toggleNotifications()"
+            >
+              {{ pushSvc.isSubscribed() ? t().disableNotifications : t().enableNotifications }}
+            </button>
           }
         </div>
 
@@ -189,22 +171,11 @@ export class ProfileSettingsComponent {
 
   t = computed(() => this.languageService.t());
 
-  testing = signal(false);
-
   notificationsBlocked = computed(
     () =>
       this.pushSvc.isSupported() &&
       this.pushSvc.permissionState() === 'denied'
   );
-
-  notificationsStatus = computed(() => {
-    if (!this.pushSvc.isSupported()) return this.t().notificationsNotSupported;
-    if (this.pushSvc.permissionState() === 'denied')
-      return this.t().notificationsBlocked;
-    return this.pushSvc.isSubscribed()
-      ? this.t().notificationsActive
-      : this.t().notificationsInactive;
-  });
 
   tabOptions = computed(() => [
     { value: 'releases' as const, label: this.t().releases },
@@ -321,25 +292,6 @@ export class ProfileSettingsComponent {
             : this.t().toastError,
         );
       }
-    }
-  }
-
-  async sendTestNotification() {
-    this.testing.set(true);
-    try {
-      const ok = await this.pushSvc.sendTest();
-      if (ok) {
-        this.toast.success(this.t().toastNotificationTestSent);
-      } else {
-        const detail = this.pushSvc.lastError();
-        this.toast.error(
-          detail
-            ? `${this.t().toastNotificationTestFailed} (${detail})`
-            : this.t().toastNotificationTestFailed,
-        );
-      }
-    } finally {
-      this.testing.set(false);
     }
   }
 

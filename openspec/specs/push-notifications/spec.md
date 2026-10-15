@@ -88,18 +88,14 @@ notificar al propietario de la wishlist si tiene notificaciones activas.
 - **WHEN** un usuario sin acceso compartido intenta notificar al propietario
 - **THEN** el servidor rechaza la solicitud de notificación
 
-### Requirement: Diagnóstico visible del estado de notificaciones
-La app SHALL exponer en Perfil el estado de permiso, la existencia de suscripción y una
-forma de verificar la entrega en el propio dispositivo.
+### Requirement: Estado de notificaciones visible
+La app SHALL reflejar en Perfil si las notificaciones están soportadas, si el permiso está
+concedido o bloqueado y el estado de la suscripción del dispositivo.
 
 #### Scenario: Estado visible
 - **WHEN** el usuario abre Perfil
-- **THEN** la app muestra si las notificaciones están soportadas, si el permiso está
-  concedido o bloqueado y si existe una suscripción activa
-
-#### Scenario: Verificación de entrega
-- **WHEN** el usuario solicita una notificación de prueba con suscripción activa
-- **THEN** el dispositivo recibe la notificación de prueba
+- **THEN** la app muestra si las notificaciones están soportadas o bloqueadas y ofrece un
+  botón para activarlas o desactivarlas según el estado de la suscripción
 
 ### Requirement: Coherencia de claves VAPID
 La clave pública VAPID usada por el cliente SHALL proceder de la misma pareja de claves
