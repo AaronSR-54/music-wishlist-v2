@@ -167,8 +167,8 @@ import { SuperuserService } from '../../core/superuser/superuser.service';
                     (click)="toggleArtist($event)"
                     [title]="
                       isArtistInWishlist(a.id)
-                        ? 'Quitar de wishlist'
-                        : 'Añadir a wishlist'
+                        ? t().removeFromWishlist
+                        : t().addToWishlist
                     "
                   >
                     @if (isArtistInWishlist(a.id)) {

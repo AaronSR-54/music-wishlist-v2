@@ -1,5 +1,14 @@
-import { Component, EventEmitter, Input, Output, ChangeDetectionStrategy } from '@angular/core';
+import {
+  Component,
+  EventEmitter,
+  Input,
+  Output,
+  ChangeDetectionStrategy,
+  computed,
+  inject,
+} from '@angular/core';
 import { IconComponent } from '../../shared/icons/icon.component';
+import { LanguageService } from '../../core/i18n/language.service';
 
 @Component({
   selector: 'app-tab-bar',
@@ -25,7 +34,7 @@ import { IconComponent } from '../../shared/icons/icon.component';
           class="w-6 md:w-8 h-6 md:h-8"
         />
         @if (activeTab === 'releases') {
-          <span class="font-display font-bold">LANZAMIENTOS</span>
+          <span class="font-display font-bold">{{ labels().releases }}</span>
         }
       </button>
       <button
@@ -43,7 +52,7 @@ import { IconComponent } from '../../shared/icons/icon.component';
           class="w-6 md:w-8 h-6 md:h-8"
         />
         @if (activeTab === 'search') {
-          <span class="font-display font-bold">BUSCADOR</span>
+          <span class="font-display font-bold">{{ labels().search }}</span>
         }
       </button>
       <button
@@ -61,14 +70,25 @@ import { IconComponent } from '../../shared/icons/icon.component';
           class="w-6 md:w-8 h-6 md:h-8"
         />
         @if (activeTab === 'wishlist') {
-          <span class="font-display font-bold">WHISLIST</span>
+          <span class="font-display font-bold">{{ labels().wishlist }}</span>
         }
       </button>
     </nav>
   `,
 })
 export class TabBarComponent {
+  private languageService = inject(LanguageService);
+
   @Input({ required: true }) activeTab: 'search' | 'wishlist' | 'releases' =
     'search';
   @Output() tabChange = new EventEmitter<'search' | 'wishlist' | 'releases'>();
+
+  labels = computed(() => {
+    const t = this.languageService.t();
+    return {
+      releases: t.releases.toUpperCase(),
+      search: t.search.toUpperCase(),
+      wishlist: t.wishlist.toUpperCase(),
+    };
+  });
 }

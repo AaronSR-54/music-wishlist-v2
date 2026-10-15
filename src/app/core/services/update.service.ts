@@ -1,5 +1,6 @@
 import { Injectable, inject, NgZone } from '@angular/core';
 import { ToastService } from '../../shared/components/toast/toast.component';
+import { LanguageService } from '../i18n/language.service';
 
 @Injectable({
   providedIn: 'root',
@@ -7,6 +8,7 @@ import { ToastService } from '../../shared/components/toast/toast.component';
 export class UpdateService {
   private toast = inject(ToastService);
   private zone = inject(NgZone);
+  private languageService = inject(LanguageService);
 
   constructor() {
     if (!('serviceWorker' in navigator)) return;
@@ -14,10 +16,11 @@ export class UpdateService {
     navigator.serviceWorker.addEventListener('message', (event) => {
       if (event.data?.type === 'NEW_VERSION_AVAILABLE') {
         this.zone.run(() => {
+          const t = this.languageService.t();
           this.toast.showWithAction(
-            'Nueva versión disponible',
+            t.newVersion,
             {
-              label: 'Actualizar',
+              label: t.update,
               fn: () => document.location.reload(),
             },
             'info'

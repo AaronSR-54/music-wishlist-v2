@@ -6,10 +6,12 @@ import {
   output,
   ViewChild,
   computed,
+  inject,
   AfterViewInit,
 } from '@angular/core';
 import { IconComponent } from '../../icons/icon.component';
 import { ModalComponent } from '../modal/modal.component';
+import { LanguageService } from '../../../core/i18n/language.service';
 
 @Component({
   selector: 'app-context-menu-panel',
@@ -18,14 +20,14 @@ import { ModalComponent } from '../modal/modal.component';
   imports: [IconComponent, ModalComponent],
   template: `
     @if (mobile()) {
-      <app-modal #modal [title]="title()" (onClose)="close()">
+      <app-modal #modal [title]="title() || t().options" (onClose)="close()">
         <div class="flex flex-col gap-1">
           <button
             class="flex items-center gap-3 px-4 py-3 font-body text-sm text-ink-200 dark:text-bone-600 italic rounded-md transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] bg-bone-200 dark:bg-ink-500 hover:font-bold hover:not-italic w-full text-left"
             (click)="handleCopyLink()"
           >
             <app-icon name="link" class="w-4 h-4" />
-            <span>Copiar enlace</span>
+            <span>{{ t().copyLink }}</span>
           </button>
           @if (showArtist()) {
             <button
@@ -33,7 +35,7 @@ import { ModalComponent } from '../modal/modal.component';
               (click)="handleGoToArtist()"
             >
               <app-icon name="person" class="w-4 h-4" />
-              <span>Ir al artista</span>
+              <span>{{ t().goToArtist }}</span>
             </button>
           }
           @if (showAlbum()) {
@@ -42,7 +44,7 @@ import { ModalComponent } from '../modal/modal.component';
               (click)="handleGoToAlbum()"
             >
               <app-icon name="album" class="w-4 h-4" />
-              <span>Ir al álbum</span>
+              <span>{{ t().goToAlbum }}</span>
             </button>
           }
           @if (showRemove()) {
@@ -51,7 +53,7 @@ import { ModalComponent } from '../modal/modal.component';
               (click)="handleRemove()"
             >
               <app-icon name="trash" class="w-4 h-4" />
-              <span>Eliminar de la wishlist</span>
+              <span>{{ t().removeFromWishlist }}</span>
             </button>
           }
         </div>
@@ -68,7 +70,7 @@ import { ModalComponent } from '../modal/modal.component';
             (click)="handleCopyLink()"
           >
             <app-icon name="link" class="w-4 h-4" />
-            <span>Copiar enlace</span>
+            <span>{{ t().copyLink }}</span>
           </button>
           @if (showArtist()) {
             <button
@@ -76,7 +78,7 @@ import { ModalComponent } from '../modal/modal.component';
               (click)="handleGoToArtist()"
             >
               <app-icon name="person" class="w-4 h-4" />
-              <span>Ir al artista</span>
+              <span>{{ t().goToArtist }}</span>
             </button>
           }
           @if (showAlbum()) {
@@ -85,7 +87,7 @@ import { ModalComponent } from '../modal/modal.component';
               (click)="handleGoToAlbum()"
             >
               <app-icon name="album" class="w-4 h-4" />
-              <span>Ir al álbum</span>
+              <span>{{ t().goToAlbum }}</span>
             </button>
           }
           @if (showRemove()) {
@@ -94,7 +96,7 @@ import { ModalComponent } from '../modal/modal.component';
               (click)="handleRemove()"
             >
               <app-icon name="trash" class="w-4 h-4" />
-              <span>Eliminar de la wishlist</span>
+              <span>{{ t().removeFromWishlist }}</span>
             </button>
           }
         </div>
@@ -103,10 +105,14 @@ import { ModalComponent } from '../modal/modal.component';
   `,
 })
 export class ContextMenuPanelComponent implements AfterViewInit {
+  private languageService = inject(LanguageService);
+
   x = input.required<number>();
   y = input.required<number>();
   mobile = input(false);
-  title = input('Opciones');
+  title = input('');
+
+  t = computed(() => this.languageService.t());
   showRemove = input(false);
   showArtist = input(false);
   showAlbum = input(false);

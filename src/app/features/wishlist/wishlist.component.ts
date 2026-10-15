@@ -82,7 +82,7 @@ type WishlistTab = 'pending' | 'downloaded';
     >
       <app-page-header
         prefix="03/"
-        title="WISHLIST"
+        [title]="t().wishlist"
         [showBack]="false"
         [mobileOnly]="true"
         [badge]="wishlistSvc.total() + ' ' + t().elements"

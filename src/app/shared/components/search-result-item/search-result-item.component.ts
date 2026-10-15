@@ -87,7 +87,9 @@ type WishlistEntryExtended = WishlistEntry & {
                   <i
                     >{{ trackItem().albumCount }}
                     <span class="italic">
-                      álbum{{ trackItem().albumCount !== 1 ? 's' : '' }}
+                      {{
+                        trackItem().albumCount !== 1 ? t().albums2 : t().album
+                      }}
                     </span></i
                   >
                 }
@@ -200,7 +202,7 @@ type WishlistEntryExtended = WishlistEntry & {
                 [size]="14"
               />
 
-              {{ isShared() ? wishlistItem().addedBy : 'Yo' }}
+              {{ isShared() ? wishlistItem().addedBy : t().me }}
               ·
               <span class="font-display font-normal italic ">
                 {{ addedAtFormatted() }}
@@ -313,7 +315,11 @@ export class SearchResultItemComponent {
 
   addedAtFormatted = computed(() => {
     if (!this.isWishlist()) return '';
-    return formatRelativeDate(this.wishlistItem().addedAt);
+    return formatRelativeDate(
+      this.wishlistItem().addedAt,
+      this.t(),
+      this.languageService.getLanguage(),
+    );
   });
 
   readonly isWishlist = computed(() => this.source() === 'wishlist');

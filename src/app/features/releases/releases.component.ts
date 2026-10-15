@@ -113,7 +113,7 @@ import { ToastService } from '../../shared/components/toast/toast.component';
     <div
       class="flex flex-col h-full overflow-hidden p-0.5 pt-2 gap-4 w-full [animation:fadeIn_300ms_ease_both]"
     >
-      <app-page-header prefix="01/" title="LANZAMIENTOS" [showBack]="false" [mobileOnly]="true" />
+      <app-page-header prefix="01/" [title]="t().releases" [showBack]="false" [mobileOnly]="true" />
 
       <div
         class="flex flex-col h-full pb-8"

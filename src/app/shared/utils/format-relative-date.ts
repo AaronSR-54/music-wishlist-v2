@@ -1,4 +1,14 @@
-export function formatRelativeDate(date: Date | string | number): string {
+type RelativeDateTranslations = {
+  justNow: string;
+  yesterday: string;
+  hoursAgo: string;
+};
+
+export function formatRelativeDate(
+  date: Date | string | number,
+  t: RelativeDateTranslations,
+  locale: 'es' | 'en' = 'en',
+): string {
   const d = new Date(date);
   const now = new Date();
   const diffMs = now.getTime() - d.getTime();
@@ -6,14 +16,16 @@ export function formatRelativeDate(date: Date | string | number): string {
   const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
 
   if (diffHours < 24) {
-    return diffHours === 0 ? 'hace poco' : `hace ${diffHours}h`;
+    return diffHours === 0
+      ? t.justNow
+      : t.hoursAgo.replace('{h}', String(diffHours));
   }
 
   if (diffDays === 1) {
-    return 'ayer';
+    return t.yesterday;
   }
 
-  const month = d.toLocaleString('es', { month: 'short' });
+  const month = d.toLocaleString(locale, { month: 'short' });
   const day = d.getDate();
   return `${day} ${month}`;
 }

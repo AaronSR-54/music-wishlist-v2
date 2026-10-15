@@ -1,5 +1,13 @@
-import { Component, EventEmitter, Output, inject, ChangeDetectionStrategy } from '@angular/core';
+import {
+  Component,
+  EventEmitter,
+  Output,
+  inject,
+  computed,
+  ChangeDetectionStrategy,
+} from '@angular/core';
 import { AuthService } from '../../core/auth/auth.service';
+import { LanguageService } from '../../core/i18n/language.service';
 import { AvatarComponent } from '../../shared/components/avatar/avatar.component';
 
 @Component({
@@ -22,7 +30,7 @@ import { AvatarComponent } from '../../shared/components/avatar/avatar.component
           <button
             class="bg-transparent border-none cursor-pointer p-0 rounded-full transition-opacity duration-fast ease-smooth hover:opacity-80"
             (click)="openProfile.emit()"
-            title="Abrir perfil"
+            [title]="t().openProfile"
           >
             <app-avatar [name]="u.displayName ?? u.email ?? 'U'" [size]="34" />
           </button>
@@ -35,5 +43,8 @@ export class HeaderComponent {
   @Output() openProfile = new EventEmitter<void>();
 
   private auth = inject(AuthService);
+  private languageService = inject(LanguageService);
+
   user = this.auth.currentUser;
+  t = computed(() => this.languageService.t());
 }

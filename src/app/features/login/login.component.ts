@@ -1,10 +1,12 @@
 import {
   Component,
+  computed,
   inject,
   signal,
   ChangeDetectionStrategy,
 } from '@angular/core';
 import { AuthService } from '../../core/auth/auth.service';
+import { LanguageService } from '../../core/i18n/language.service';
 import { VersionService } from '../../core/version/version.service';
 import { IconComponent } from '../../shared/icons/icon.component';
 
@@ -91,8 +93,7 @@ import { IconComponent } from '../../shared/icons/icon.component';
           class="font-body text-sm leading-[1.2] text-ink-600 dark:text-bone-600 m-0"
           style="animation: driftUp 700ms cubic-bezier(0.16,1,0.3,1) both; animation-delay: 200ms"
         >
-          Lleva un registro de la música que quieres descubrir. Busca, añade y
-          marca lo que ya tienes.
+          {{ t().loginTagline }}
         </p>
       </main>
 
@@ -102,7 +103,7 @@ import { IconComponent } from '../../shared/icons/icon.component';
       >
         <span
           class="font-body text-[12px] font-medium text-ink-700 dark:text-bone-700"
-          >INICIA SESIÓN CON</span
+          >{{ t().loginWith }}</span
         >
 
         <div class="flex gap-4 flex-wrap items-end">
@@ -120,7 +121,7 @@ import { IconComponent } from '../../shared/icons/icon.component';
                 name="google"
                 class="w-[1.125rem] md:w-[1.375rem] h-[1.125rem] md:h-[1.375rem] fill-bone dark:fill-ink"
               />
-              Continuar con Google
+              {{ t().continueWithGoogle }}
             }
           </button>
         </div>
@@ -133,11 +134,14 @@ import { IconComponent } from '../../shared/icons/icon.component';
 })
 export class LoginComponent {
   private auth = inject(AuthService);
+  private languageService = inject(LanguageService);
   versionService = inject(VersionService);
 
   loading = signal(false);
   error = signal('');
   version = this.versionService.version;
+
+  t = computed(() => this.languageService.t());
 
   async login() {
     this.loading.set(true);
@@ -145,7 +149,7 @@ export class LoginComponent {
     try {
       await this.auth.loginWithGoogle();
     } catch (e: unknown) {
-      this.error.set('Error al iniciar sesión. Inténtalo de nuevo.');
+      this.error.set(this.languageService.t().loginError);
     } finally {
       this.loading.set(false);
     }
