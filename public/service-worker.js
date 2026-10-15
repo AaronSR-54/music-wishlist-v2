@@ -134,6 +134,17 @@ self.addEventListener('push', (event) => {
     return;
   }
 
+  if (data.type === 'test') {
+    event.waitUntil(
+      self.registration.showNotification('✅ Notificación de prueba', {
+        body: 'Las notificaciones funcionan en este dispositivo',
+        badge: `/badge.png?v=${BADGE_VERSION}`,
+        data: { url: '/profile' },
+      }),
+    );
+    return;
+  }
+
   const emoji = RELEASE_EMOJI[data.releaseType] ?? '🎵';
   event.waitUntil(
     self.registration.showNotification(`${emoji} Nuevo ${data.releaseType} de ${data.artist}`, {

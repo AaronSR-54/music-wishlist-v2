@@ -20,8 +20,27 @@ bootstrapApplication(App, appConfig)
       ? `/service-worker.js?v=${encodeURIComponent(version)}`
       : '/service-worker.js';
 
-    navigator.serviceWorker
-      .register(swUrl)
-      .catch((err) => console.log('Service Worker registration failed', err));
+    try {
+      // Remove any legacy Angular service worker (ngsw-worker.js) so that a
+      // single service worker owns the push/notification handlers. Installed
+      // PWAs may still have one registered from an earlier build.
+      const registrations = await navigator.serviceWorker.getRegistrations();
+      await Promise.all(
+        registrations
+          .filter((reg) => {
+            const script =
+              reg.active?.scriptURL ??
+              reg.installing?.scriptURL ??
+              reg.waiting?.scriptURL ??
+              '';
+            return script.includes('ngsw-worker.js');
+          })
+          .map((reg) => reg.unregister()),
+      );
+
+      await navigator.serviceWorker.register(swUrl);
+    } catch (err) {
+      console.log('Service Worker registration failed', err);
+    }
   })
   .catch((err) => console.error(err));

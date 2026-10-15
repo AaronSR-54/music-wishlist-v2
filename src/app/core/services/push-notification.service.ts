@@ -1,26 +1,52 @@
-import { Injectable, signal, inject } from '@angular/core';
+import { Injectable, signal, inject, computed } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { firstValueFrom } from 'rxjs';
 import { AuthService } from '../auth/auth.service';
 import { environment } from '../../../environments/environment';
+
+export type PushUnsupportedReason =
+  | 'no-window'
+  | 'no-notification'
+  | 'no-service-worker'
+  | 'no-push-manager'
+  | null;
+
+export function detectUnsupportedReason(env?: {
+  win?: unknown;
+  nav?: unknown;
+}): PushUnsupportedReason {
+  const hasWin = env !== undefined && 'win' in env;
+  const hasNav = env !== undefined && 'nav' in env;
+  const win = hasWin ? env.win : typeof window !== 'undefined' ? window : undefined;
+  const nav = hasNav ? env.nav : typeof navigator !== 'undefined' ? navigator : undefined;
+  if (!win) return 'no-window';
+  if (!('Notification' in (win as object))) return 'no-notification';
+  if (!nav || !('serviceWorker' in (nav as object))) return 'no-service-worker';
+  if (!('PushManager' in (win as object))) return 'no-push-manager';
+  return null;
+}
 
 @Injectable({ providedIn: 'root' })
 export class PushNotificationService {
   private http = inject(HttpClient);
   private auth = inject(AuthService);
 
-  readonly isSupported =
-    typeof window !== 'undefined' &&
-    'PushManager' in window &&
-    'serviceWorker' in navigator;
+  readonly unsupportedReason = signal<PushUnsupportedReason>(
+    detectUnsupportedReason(),
+  );
+  readonly isSupported = computed(() => this.unsupportedReason() === null);
 
-  permissionState = signal<NotificationPermission>('default');
+  permissionState = signal<NotificationPermission>(
+    typeof window !== 'undefined' && 'Notification' in window
+      ? Notification.permission
+      : 'default',
+  );
   isSubscribed = signal(false);
   loading = signal(false);
+  lastError = signal<string | null>(null);
 
   constructor() {
-    if (!this.isSupported) return;
-    this.permissionState.set(Notification.permission);
+    if (!this.isSupported()) return;
     this.syncSubscriptionState();
   }
 
@@ -45,7 +71,11 @@ export class PushNotificationService {
   }
 
   async subscribe(): Promise<'granted' | 'denied' | 'error'> {
-    if (!this.isSupported || this.auth.demoMode()) return 'error';
+    this.lastError.set(null);
+    if (!this.isSupported() || this.auth.demoMode()) {
+      this.lastError.set(this.unsupportedReason() ?? 'demo');
+      return 'error';
+    }
     this.loading.set(true);
     let sub: PushSubscription | null = null;
     try {
@@ -60,13 +90,17 @@ export class PushNotificationService {
       });
 
       const user = this.auth.currentUser();
-      if (!user) throw new Error('No user');
+      if (!user) throw new Error('No authenticated user');
       const token = await user.getIdToken();
 
       await firstValueFrom(
         this.http.post(
           '/api/push',
-          { action: 'subscribe', subscription: sub.toJSON(), clientId: this.getClientId() },
+          {
+            action: 'subscribe',
+            subscription: sub.toJSON(),
+            clientId: this.getClientId(),
+          },
           {
             headers: { Authorization: `Bearer ${token}` },
           },
@@ -75,6 +109,7 @@ export class PushNotificationService {
       this.isSubscribed.set(true);
       return 'granted';
     } catch (err) {
+      this.lastError.set(err instanceof Error ? err.message : String(err));
       console.error('[PushNotification] subscribe error:', err);
       if (sub) await sub.unsubscribe().catch(() => {});
       return 'error';
@@ -84,8 +119,9 @@ export class PushNotificationService {
   }
 
   async unsubscribe(): Promise<void> {
-    if (!this.isSupported) return;
+    if (!this.isSupported()) return;
     this.loading.set(true);
+    this.lastError.set(null);
     try {
       const reg = await navigator.serviceWorker.ready;
       const sub = await reg.pushManager.getSubscription();
@@ -105,10 +141,34 @@ export class PushNotificationService {
         );
       }
       this.isSubscribed.set(false);
-    } catch {
-      // ignore
+    } catch (err) {
+      this.lastError.set(err instanceof Error ? err.message : String(err));
     } finally {
       this.loading.set(false);
+    }
+  }
+
+  async sendTest(): Promise<boolean> {
+    this.lastError.set(null);
+    if (!this.isSupported() || this.auth.demoMode()) return false;
+    try {
+      const user = this.auth.currentUser();
+      if (!user) throw new Error('No authenticated user');
+      const token = await user.getIdToken();
+      await firstValueFrom(
+        this.http.post(
+          '/api/push',
+          { action: 'test' },
+          {
+            headers: { Authorization: `Bearer ${token}` },
+          },
+        ),
+      );
+      return true;
+    } catch (err) {
+      this.lastError.set(err instanceof Error ? err.message : String(err));
+      console.error('[PushNotification] sendTest error:', err);
+      return false;
     }
   }
 }

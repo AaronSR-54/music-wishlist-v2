@@ -10,31 +10,42 @@ const required = [
   'FIREBASE_APP_ID',
 ];
 
+const envPath = path.join(__dirname, '../src/environments/environment.ts');
+const existing = fs.existsSync(envPath) ? fs.readFileSync(envPath, 'utf8') : '';
+
 const missing = required.filter((k) => !process.env[k]);
 if (missing.length) {
-  console.warn(`Missing env vars: ${missing.join(', ')} - using existing environment.ts`);
+  // Never overwrite the committed config with empty values (for example a local
+  // build without a .env). On Vercel the required vars are present, so the
+  // generation below runs and the environment becomes the single source of
+  // truth - including VAPID_PUBLIC_KEY, which used to be ignored whenever the
+  // committed environment.ts already contained `production: true`.
+  console.warn(
+    `Missing env vars: ${missing.join(', ')} - keeping existing environment.ts`,
+  );
+  if (existing) return;
 }
 
-const envPath = path.join(__dirname, '../src/environments/environment.ts');
-if (fs.existsSync(envPath)) {
-  const existing = fs.readFileSync(envPath, 'utf8');
-  if (existing.includes('production: true')) {
-    console.log('Using existing environment.ts');
-    return;
-  }
+function existingValue(key) {
+  const match = existing.match(new RegExp(`${key}\\s*:\\s*'([^']*)'`));
+  return match ? match[1] : '';
 }
+
+// Environment variables are authoritative when set; otherwise keep the value
+// already committed in environment.ts.
+const value = (envKey, tsKey) => process.env[envKey] || existingValue(tsKey);
 
 const content = `export const environment = {
   production: true,
   firebase: {
-    apiKey: '${process.env.FIREBASE_API_KEY || ''}',
-    authDomain: '${process.env.FIREBASE_AUTH_DOMAIN || ''}',
-    projectId: '${process.env.FIREBASE_PROJECT_ID || ''}',
-    storageBucket: '${process.env.FIREBASE_STORAGE_BUCKET || ''}',
-    messagingSenderId: '${process.env.FIREBASE_MESSAGING_SENDER_ID || ''}',
-    appId: '${process.env.FIREBASE_APP_ID || ''}',
+    apiKey: '${value('FIREBASE_API_KEY', 'apiKey')}',
+    authDomain: '${value('FIREBASE_AUTH_DOMAIN', 'authDomain')}',
+    projectId: '${value('FIREBASE_PROJECT_ID', 'projectId')}',
+    storageBucket: '${value('FIREBASE_STORAGE_BUCKET', 'storageBucket')}',
+    messagingSenderId: '${value('FIREBASE_MESSAGING_SENDER_ID', 'messagingSenderId')}',
+    appId: '${value('FIREBASE_APP_ID', 'appId')}',
   },
-  vapidPublicKey: '${process.env.VAPID_PUBLIC_KEY || ''}',
+  vapidPublicKey: '${value('VAPID_PUBLIC_KEY', 'vapidPublicKey')}',
 };
 `;
 

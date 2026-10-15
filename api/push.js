@@ -168,7 +168,7 @@ export default async (req, res) => {
   }
 
   const { action, subscription } = req.body ?? {};
-  if (!['subscribe', 'unsubscribe', 'notify-downloaded'].includes(action)) {
+  if (!['subscribe', 'unsubscribe', 'test', 'notify-downloaded'].includes(action)) {
     return res.status(400).json({ error: 'Missing or invalid action' });
   }
 
@@ -249,6 +249,48 @@ export default async (req, res) => {
           });
         }
       }
+
+    } else if (action === 'test') {
+      // Sends a test notification to the caller's own devices. Unlike
+      // notify-downloaded, it only touches the caller's own subscription and
+      // does not need a service account.
+      const existingRes = await fetch(docUrl, {
+        headers: { Authorization: `Bearer ${idToken}` },
+      });
+      if (!existingRes.ok) {
+        return res.status(404).json({ error: 'No push subscription found' });
+      }
+      const data = await existingRes.json();
+      const f = data.fields;
+      let subs = {};
+      if (f?.subscriptions) {
+        subs = fromFields(f).subscriptions ?? {};
+      } else if (f?.subscription) {
+        subs = { legacy: fromFields(f).subscription };
+      }
+      const entries = Object.entries(subs);
+      if (entries.length === 0) {
+        return res.status(404).json({ error: 'No push subscription found' });
+      }
+
+      const payload = JSON.stringify({ type: 'test' });
+      let sent = 0;
+      const failed = [];
+      for (const [id, subData] of entries) {
+        try {
+          await webpush.sendNotification(subData, payload);
+          sent++;
+        } catch (err) {
+          console.error(
+            `[push] Test send to device ${id} error: ${err.statusCode} ${err.message}`,
+          );
+          failed.push(id);
+        }
+      }
+      console.log(
+        `[push] Test notification for ${uid}: sent=${sent} failed=${failed.length}`,
+      );
+      return res.status(200).json({ ok: true, sent, failed: failed.length });
 
     } else if (action === 'notify-downloaded') {
       const { ownerUid, downloadedBy, item } = req.body ?? {};
