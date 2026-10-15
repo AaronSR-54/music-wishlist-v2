@@ -48,3 +48,17 @@ Thumbs.db
 .env*.local
 .firebaserc
 .claude/settings.local.json
+
+# Android / TWA build outputs and signing material
+/android/.gradle
+/android/build
+/android/app/build
+/android/app/release
+/android/local.properties
+/android/manifest-checksum.txt
+/android/app-release-bundle.aab
+/android/app-release-signed.apk
+/android/app-release-unsigned*.apk
+*.idsig
+*.keystore
+*.jks

@@ -1,6 +1,6 @@
 {
   "name": "music-wishlist-v2",
-  "version": "0.15.4",
+  "version": "0.16.1",
   "scripts": {
     "ng": "ng",
     "prestart": "node scripts/generate-version.js",
@@ -9,6 +9,7 @@
     "build": "ng build",
     "watch": "ng build --watch --configuration development",
     "deploy": "ng build --configuration production && firebase deploy",
+    "android": "node scripts/android-release.js",
     "test": "ng test"
   },
   "prettier": {
@@ -48,6 +49,7 @@
     "@angular/build": "^20.0.0",
     "@angular/cli": "^20.0.0",
     "@angular/compiler-cli": "^20.0.0",
+    "@bubblewrap/cli": "^1.27.0",
     "@types/jasmine": "~5.1.0",
     "autoprefixer": "^10.5.0",
     "jasmine-core": "~5.7.0",
