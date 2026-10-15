@@ -1,11 +1,18 @@
 {
+  "id": "/",
   "name": "Music Wishlist",
   "short_name": "Music Wishlist",
-  "description": "A Progressive Web App",
+  "description": "Busca en Deezer y guarda tus álbumes y canciones en una lista de deseos.",
   "start_url": "/",
+  "scope": "/",
   "display": "standalone",
+  "display_override": ["standalone", "minimal-ui"],
+  "orientation": "any",
+  "lang": "es",
+  "dir": "ltr",
+  "categories": ["music", "entertainment"],
   "background_color": "#22201f",
-  "theme_color": "#0e0e0e",
+  "theme_color": "#22201f",
   "icons": [
     {
       "src": "/icons/icon-192x192.png",

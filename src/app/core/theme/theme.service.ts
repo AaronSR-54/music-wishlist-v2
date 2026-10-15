@@ -3,6 +3,11 @@ import { ToastService } from '../../shared/components/toast/toast.component';
 
 type Theme = 'light' | 'dark' | 'system';
 
+const THEME_COLORS = {
+  light: '#e5e0d8',
+  dark: '#22201f',
+} as const;
+
 @Injectable({
   providedIn: 'root',
 })
@@ -72,5 +77,17 @@ export class ThemeService {
       html.classList.remove('dark');
       html.setAttribute('data-theme', 'light');
     }
+    html.style.colorScheme = isDark ? 'dark' : 'light';
+
+    const color = isDark ? THEME_COLORS.dark : THEME_COLORS.light;
+    let meta = document.querySelector<HTMLMetaElement>(
+      'meta[name="theme-color"]',
+    );
+    if (!meta) {
+      meta = document.createElement('meta');
+      meta.setAttribute('name', 'theme-color');
+      document.head.appendChild(meta);
+    }
+    meta.setAttribute('content', color);
   }
 }

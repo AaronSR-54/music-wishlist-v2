@@ -13,6 +13,10 @@ export class LanguageService {
 
   t = computed(() => translations[this.language()]);
 
+  constructor() {
+    this.applyDocumentLanguage();
+  }
+
   getLanguage(): Language {
     return this.language();
   }
@@ -20,6 +24,7 @@ export class LanguageService {
   setLanguage(lang: Language) {
     this.language.set(lang);
     localStorage.setItem('app-language', lang);
+    this.applyDocumentLanguage();
     this.toastService.success('Preferencias guardadas');
   }
 
@@ -29,9 +34,13 @@ export class LanguageService {
       return saved;
     }
     const browserLang = navigator.language.split('-')[0];
-    if (browserLang && ['es', 'en'].includes(browserLang)) {
-      return browserLang as Language;
+    if (browserLang === 'es') {
+      return 'es';
     }
-    return 'es';
+    return 'en';
+  }
+
+  private applyDocumentLanguage() {
+    document.documentElement.lang = this.language();
   }
 }

@@ -1,0 +1,12 @@
+[
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "com.musicwishlist.app",
+      "sha256_cert_fingerprints": [
+        "8B:23:AF:5D:5B:25:91:CD:65:19:1A:C6:18:58:02:6F:5A:73:F8:34:C1:14:4E:14:D4:98:A7:06:F7:B7:3F:DF"
+      ]
+    }
+  }
+]
