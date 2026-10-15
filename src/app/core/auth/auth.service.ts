@@ -21,6 +21,9 @@ import { WishlistService } from '../firebase/wishlist.service';
 import { FavoriteArtistsService } from '../firebase/favorite-artists.service';
 import { WishlistShareService } from '../firebase/wishlist-share.service';
 import { AccountDeletionService } from '../firebase/account-deletion.service';
+import { DEMO_PASSWORD, DEMO_USERNAME, seedDemoData } from './demo-data';
+
+const DEMO_FLAG_KEY = 'demo-mode';
 
 @Injectable({ providedIn: 'root' })
 export class AuthService {
@@ -91,6 +94,20 @@ export class AuthService {
 
   isLoggedIn = computed(() => !!this.currentUser() || this.demoMode());
 
+  constructor() {
+    // Restore a persisted demo session. The flag is applied synchronously so
+    // the route guard sees it immediately; the listeners are initialized right
+    // after construction, because they resolve AuthService and doing it here
+    // would create a circular dependency.
+    if (
+      typeof localStorage !== 'undefined' &&
+      localStorage.getItem(DEMO_FLAG_KEY) === '1'
+    ) {
+      this.demoMode.set(true);
+      queueMicrotask(() => this.initDemoSession());
+    }
+  }
+
   async loginWithGoogle(): Promise<void> {
     const provider = new GoogleAuthProvider();
     await signInWithPopup(this.auth, provider);
@@ -100,8 +117,18 @@ export class AuthService {
   async logout(): Promise<void> {
     this.wishlistService.stopListener();
     await signOut(this.auth).catch(() => {});
-    this.demoMode.set(false);
+    this.setDemoMode(false);
     this.router.navigate(['/login']);
+  }
+
+  loginWithDemo(username: string, password: string): boolean {
+    const matches =
+      username.trim().toLowerCase() === DEMO_USERNAME &&
+      password === DEMO_PASSWORD;
+    if (!matches) return false;
+
+    this.setDemoMode(true);
+    return true;
   }
 
   async reauthenticate(): Promise<void> {
@@ -131,17 +158,24 @@ export class AuthService {
     await deleteUser(user);
 
     this.wishlistService.stopListener();
-    this.demoMode.set(false);
+    this.setDemoMode(false);
     await signOut(this.auth).catch(() => {});
     await this.router.navigate(['/login']);
   }
 
   setDemoMode(enabled: boolean): void {
     this.demoMode.set(enabled);
-    if (enabled) {
-      this.wishlistService.initListener('demo-user', 'demo@example.com');
-      this.favoriteArtistsService.initListener('demo-user');
-      this.wishlistShareService.initListeners('demo-user', 'demo@example.com');
+    if (typeof localStorage !== 'undefined') {
+      if (enabled) localStorage.setItem(DEMO_FLAG_KEY, '1');
+      else localStorage.removeItem(DEMO_FLAG_KEY);
     }
+    if (enabled) this.initDemoSession();
+  }
+
+  private initDemoSession(): void {
+    seedDemoData();
+    this.wishlistService.initListener('demo-user', 'demo@example.com');
+    this.favoriteArtistsService.initListener('demo-user');
+    this.wishlistShareService.initListeners('demo-user', 'demo@example.com');
   }
 }

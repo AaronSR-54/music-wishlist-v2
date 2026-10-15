@@ -5,6 +5,7 @@ import {
   signal,
   ChangeDetectionStrategy,
 } from '@angular/core';
+import { Router } from '@angular/router';
 import { AuthService } from '../../core/auth/auth.service';
 import { LanguageService } from '../../core/i18n/language.service';
 import { VersionService } from '../../core/version/version.service';
@@ -74,7 +75,7 @@ import { IconComponent } from '../../shared/icons/icon.component';
           <span class="text-ink-700 dark:text-bone-700 font-normal italic"
             >00/</span
           >
-          ACCESO
+          {{ t().access }}
         </span>
         <span
           class="text-ink-100 dark:text-bone-800 text-[11px] italic font-medium font-mono"
@@ -125,6 +126,55 @@ import { IconComponent } from '../../shared/icons/icon.component';
             }
           </button>
         </div>
+
+        <div class="flex items-center gap-3">
+          <span class="flex-1 h-px bg-bone-800 dark:bg-ink-200"></span>
+          <span
+            class="font-body text-[12px] italic text-ink-700 dark:text-bone-700"
+            >{{ t().or }}</span
+          >
+          <span class="flex-1 h-px bg-bone-800 dark:bg-ink-200"></span>
+        </div>
+
+        <form class="flex flex-col gap-3" (submit)="signInDemo($event)">
+          <label class="flex flex-col gap-1">
+            <span
+              class="font-body text-[12px] font-medium text-ink-700 dark:text-bone-700"
+              >{{ t().loginUsername }}</span
+            >
+            <input
+              type="text"
+              name="username"
+              autocomplete="username"
+              [value]="username()"
+              (input)="username.set($any($event.target).value)"
+              class="px-4 py-3 rounded-lg bg-bone dark:bg-ink-200 text-ink dark:text-bone border border-bone-800 dark:border-ink-300 outline-none focus:border-ink dark:focus:border-bone"
+            />
+          </label>
+
+          <label class="flex flex-col gap-1">
+            <span
+              class="font-body text-[12px] font-medium text-ink-700 dark:text-bone-700"
+              >{{ t().loginPassword }}</span
+            >
+            <input
+              type="password"
+              name="password"
+              autocomplete="current-password"
+              [value]="password()"
+              (input)="password.set($any($event.target).value)"
+              class="px-4 py-3 rounded-lg bg-bone dark:bg-ink-200 text-ink dark:text-bone border border-bone-800 dark:border-ink-300 outline-none focus:border-ink dark:focus:border-bone"
+            />
+          </label>
+
+          <button
+            type="submit"
+            class="py-[14px] px-6 rounded-pill bg-ink dark:bg-bone text-bone dark:text-ink font-body text-[15px] font-semibold border-none cursor-pointer transition-[opacity,transform] duration-fast ease-smooth hover:opacity-[0.88] hover:-translate-y-px active:translate-y-0"
+          >
+            {{ t().signIn }}
+          </button>
+        </form>
+
         @if (error()) {
           <p class="text-[13px] text-[#e57373] m-0">{{ error() }}</p>
         }
@@ -134,11 +184,14 @@ import { IconComponent } from '../../shared/icons/icon.component';
 })
 export class LoginComponent {
   private auth = inject(AuthService);
+  private router = inject(Router);
   private languageService = inject(LanguageService);
   versionService = inject(VersionService);
 
   loading = signal(false);
   error = signal('');
+  username = signal('');
+  password = signal('');
   version = this.versionService.version;
 
   t = computed(() => this.languageService.t());
@@ -152,6 +205,16 @@ export class LoginComponent {
       this.error.set(this.languageService.t().loginError);
     } finally {
       this.loading.set(false);
+    }
+  }
+
+  signInDemo(event: Event) {
+    event.preventDefault();
+    this.error.set('');
+    if (this.auth.loginWithDemo(this.username(), this.password())) {
+      this.router.navigate(['/']);
+    } else {
+      this.error.set(this.languageService.t().loginInvalid);
     }
   }
 }
