@@ -42,7 +42,7 @@ Also required before publishing (not available via the API):
 - **Seguridad de los datos / Data safety**: Política y programa → Contenido de la app → Seguridad de los datos.
 - **Clasificación de contenido / Content rating**: same section.
 - **Política de privacidad / Privacy policy**: public URL required.
-- **Ficha de Play Store**: descripción, capturas, icono (usa `android/store_icon.png`), gráfico destacado.
+- **Ficha de Play Store**: se sube con el comando `listing` de la skill (ver *Ficha de Play Store* más abajo).
 
 ## 3. Digital Asset Links
 
@@ -54,6 +54,60 @@ curl -I https://music-wishlist-v2.vercel.app/.well-known/assetlinks.json
 ```
 
 If the URL bar still shows, the fingerprint or package name does not match the installed signer.
+
+## Ficha de Play Store (listing)
+
+El texto localizado y los gráficos viven versionados en `store/listing/` y se aplican con el
+comando `listing` de la skill `google-play-console`:
+
+```bash
+PLAY=~/.config/opencode/skills/google-play-console/scripts/play.mjs
+
+# 1) Monta el edit, valida y descarta (no commitea)
+node "$PLAY" listing --dir store/listing --dry-run
+
+# 2) Aplica la ficha de verdad (pasa a revisión de Google)
+node "$PLAY" listing --dir store/listing
+```
+
+Layout:
+
+- `store/listing/listing.en-US.json` — inglés (idioma por defecto de la ficha).
+- `store/listing/listing.es-ES.json` — español.
+- `store/listing/images/icon.png` — icono 512×512.
+- `store/listing/images/feature-graphic.png` — gráfico destacado 1024×500.
+- `store/listing/images/<lang>/*.png` — 2–8 capturas de teléfono **por idioma** (`en-US/`, `es-ES/`);
+  si falta el directorio del idioma se usa el plano `images/*.png` como fallback.
+
+El comando valida longitudes (título ≤ 30, descripción corta ≤ 80, larga ≤ 4000) y formatos
+(PNG/JPEG, dimensiones) antes de tocar la API, y borra las capturas anteriores antes de subirlas
+para que reejecutar sea idempotente. Cada idioma sube su propio set de capturas; el icono y el
+gráfico destacado se suben solo al idioma por defecto (Play los trata como globales).
+
+### Capturas
+
+`npm run store:screenshots` captura las capturas de teléfono (1080×1920) recorriendo la app en
+modo demo con Playwright. El idioma se fija con `STORE_CAPTURE_LANG` y se escribe en
+`store/listing/images/<lang>/`:
+
+```bash
+npm start                                          # o deja que el script arranque el dev server
+STORE_CAPTURE_LANG=en npm run store:screenshots    # → images/en-US/
+STORE_CAPTURE_LANG=es npm run store:screenshots    # → images/es-ES/
+```
+
+Cubre lanzamientos, buscador, lista de deseos, artista, álbum y perfil. Sin marcos ni rótulos.
+El modo demo fuerza el idioma de la app (`app-language`), así que cada set sale enteramente en su idioma.
+
+**Fallback manual**: si Playwright/Chromium no está disponible, abre la app en modo demo
+(`http://localhost:4200/?demo`) con una ventana de teléfono (360×640, zoom 3x) en cada sección y
+guarda las capturas a mano en `store/listing/images/<lang>/`.
+
+### Gráfico destacado
+
+`npm run store:feature` regenera `store/listing/images/feature-graphic.png` (1024×500) a partir de
+los assets reales de la marca: el `public/icon.svg` y el wordmark *Music Wishlist.* del header,
+renderizados con la fuente display (Satoshi) en el navegador, y aplanados a PNG 24-bit sin alfa.
 
 ## 4. Publish with the Play CLI
 

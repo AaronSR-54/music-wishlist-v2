@@ -7,6 +7,8 @@ npm run build          # production build → dist/music-wishlist-v2/browser/
 npm test               # Karma/Jasmine unit tests
 ng test --include='**/wishlist.service.spec.ts'  # single test file
 npm run android        # TWA: sync android version from package.json + build signed AAB + mapping.txt
+npm run store:screenshots  # Play listing: capture 1080x1920 phone screenshots (Playwright, demo; STORE_CAPTURE_LANG=en|es)
+npm run store:feature      # Play listing: regenerate the 1024x500 feature graphic from the brand assets
 ```
 **Note:** Demo mode is activated via `?demo` query param (no separate npm script). `prestart` and `prebuild` both run `scripts/generate-version.js`; `prebuild` also runs `scripts/set-env.js`.
 
@@ -105,6 +107,9 @@ Angular signals throughout (no NgRx):
 | `scripts/sync-android-version.js` | Derive Android version from `package.json` |
 | `scripts/android-release.js` | `npm run android`: version sync + signed AAB + mapping |
 | `store/README.md` | Google Play release flow and prerequisites |
+| `store/listing/` | Play Store listing copy (`listing.<lang>.json`) + images, applied via the skill's `play.mjs listing` |
+| `scripts/capture-store-screenshots.mjs` | `npm run store:screenshots`: Playwright captures of every app section |
+| `scripts/generate-feature-graphic.mjs` | `npm run store:feature`: renders the feature graphic from `public/icon.svg` + the header wordmark |
 | `public/.well-known/assetlinks.json` | Digital Asset Links (TWA verification) |
 | `src/app/shell/shell.component.ts` | Root layout (desktop/mobile with 3 tabs) |
 | `src/app/features/login/` | Login page |
