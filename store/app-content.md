@@ -17,18 +17,24 @@ Web: <https://music-wishlist-v2.vercel.app> · Privacidad: <https://music-wishli
 
 ## 1. Datos de inicio de sesión (App access)
 
-La app requiere **iniciar sesión con Google** para usar sus funciones.
+La app usa **inicio de sesión con Google**, pero incluye un **acceso demo con
+usuario y contraseña** en la pantalla de login, pensado para que el revisor
+entre sin cuenta externa.
 
 - Opción: **Todas o algunas funcionalidades no están disponibles sin credenciales**.
-- Instrucciones: crea una **cuenta de prueba de Google** dedicada a la revisión
-  (por ejemplo `review@…`) y facilita email y contraseña en el campo de
-  instrucciones. El revisor entra con ella y ve la app completa (lanzamientos,
-  buscador, wishlist y perfil).
-  - Pasos a indicar: 1) abrir la app; 2) tocar **Continuar con Google**;
-    3) introducir la cuenta de prueba; 4) navegar por todas las secciones.
+- **Nombre**: `Demo account`
+- **Nombre de usuario**: `demo`
+- **Contraseña**: `1234`
+- **Cualquier otra información necesaria para acceder (en inglés)**:
 
-> El modo demo (`?demo`) no sirve para la revisión: al ser una TWA no se puede
-> añadir el parámetro a la URL, por eso se entrega una cuenta de prueba real.
+  > On the login screen, use the form below "SIGN IN WITH": enter the username
+  > and password above and tap "Sign in". This opens a demo session with sample
+  > data and full access to every section (Releases, Search, Wishlist and
+  > Profile). No Google account, two-step verification, QR or code is required.
+
+> El acceso demo `demo` / `1234` crea una sesión local con datos de ejemplo,
+> persiste al recargar y da acceso a todas las secciones. Evita depender de una
+> cuenta de Google (que Play bloquea a menudo por 2FA/dispositivo).
 
 ## 2. Anuncios
 
@@ -115,8 +121,8 @@ capturas por idioma ya están aplicados con el comando `listing` de la skill
 
 ## Pendientes (pasos manuales en Play Console)
 
-- **Cuenta de prueba de Google**: crear la cuenta para el revisor (paso manual).
-- **Rellenar en Play Console** cada declaración de la checklist (no tienen API).
+- **Rellenar en Play Console** cada declaración de la checklist (no tienen API);
+  usa el acceso demo `demo` / `1234` para la sección de inicio de sesión.
 
 > Los **datos de contacto** (email `aaronsanzroca@gmail.com` + web) ya están
 > aplicados vía API con `play.mjs details`.

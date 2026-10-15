@@ -10,7 +10,7 @@ npm run android        # TWA: sync android version from package.json + build sig
 npm run store:screenshots  # Play listing: capture 1080x1920 phone screenshots (Playwright, demo; STORE_CAPTURE_LANG=en|es)
 npm run store:feature      # Play listing: regenerate the 1024x500 feature graphic from the brand assets
 ```
-**Note:** Demo mode is activated via `?demo` query param (no separate npm script). `prestart` and `prebuild` both run `scripts/generate-version.js`; `prebuild` also runs `scripts/set-env.js`.
+**Note:** Demo mode is activated via `?demo` query param or the demo login (`demo` / `1234`) on the login screen (persists in `localStorage` as `demo-mode`); no separate npm script. `prestart` and `prebuild` both run `scripts/generate-version.js`; `prebuild` also runs `scripts/set-env.js`.
 
 ## Versioning
 

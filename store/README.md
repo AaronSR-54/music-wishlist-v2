@@ -42,7 +42,7 @@ Also required before publishing (not available via the API):
 - **Contenido de la app / App content** (acceso, anuncios, clasificación, audiencia, Data safety, gobierno, finanzas, salud): solo por Play Console. Respuestas recomendadas en [`store/app-content.md`](app-content.md).
 - **Política de privacidad / Privacy policy**: `https://music-wishlist-v2.vercel.app/privacy.html` (página estática, bilingüe, servida sin JS).
 - **Eliminación de datos / Data deletion URL**: `https://music-wishlist-v2.vercel.app/delete-account.html` (página estática; borrado in-app en Perfil → *Eliminar cuenta*).
-- **Acceso del revisor / App access**: cuenta de prueba de Google con sus pasos (ver `store/app-content.md`).
+- **Acceso del revisor / App access**: login demo `demo` / `1234` en la pantalla de inicio de sesión (ver `store/app-content.md`).
 - **Categoría y datos de contacto**: Música y audio + web `https://music-wishlist-v2.vercel.app` (Play requiere además un email de desarrollador).
 - **Ficha de Play Store**: se sube con el comando `listing` de la skill (ver *Ficha de Play Store* más abajo).
 
