@@ -278,6 +278,26 @@ function isWithinWindow(releaseDateStr, days) {
 
 // ── Runner ────────────────────────────────────────────────────
 
+const FETCH_CONCURRENCY = 4;
+const USER_CONCURRENCY = 4;
+
+async function mapWithConcurrency(items, limit, fn) {
+  const results = new Array(items.length);
+  let next = 0;
+  const workers = Array.from(
+    { length: Math.min(limit, items.length) },
+    async () => {
+      while (true) {
+        const index = next++;
+        if (index >= items.length) break;
+        results[index] = await fn(items[index], index);
+      }
+    },
+  );
+  await Promise.all(workers);
+  return results;
+}
+
 async function run(uid, idToken, clientId) {
   const subDoc = await getDoc(`push-subscriptions/${uid}`, idToken);
   if (!subDoc) {
@@ -304,50 +324,60 @@ async function run(uid, idToken, clientId) {
 
   const favorites = favDocs.map((d) => fromFields(d.fields));
 
-  const newReleasesByArtist = {};
-  for (const favorite of favorites) {
-    const albums = await fetchArtistAlbums(favorite.artistId);
-    if (!albums.length) {
-      console.log(`[check-releases] No albums from Deezer for artist ${favorite.artistId}`);
-      continue;
-    }
+  // Phase 1 — resolve new releases per favorite. Bounded concurrency keeps the
+  // whole run inside the function time limit. The cache is NOT written here:
+  // it is written only after a release is actually sent (phase 2), so a
+  // cut-off run never marks a release as notified without sending it.
+  const candidates = await mapWithConcurrency(
+    favorites,
+    FETCH_CONCURRENCY,
+    async (favorite) => {
+      const albums = await fetchArtistAlbums(favorite.artistId);
+      if (!albums.length) {
+        console.log(`[check-releases] No albums from Deezer for artist ${favorite.artistId}`);
+        return null;
+      }
 
-    const cacheRef = `artist-releases-cache/${clientId}_${favorite.artistId}`;
-    const cacheDoc = await getDoc(cacheRef, idToken);
-    const notifiedIds = cacheDoc ? (cacheDoc.fields?.albumIds?.arrayValue?.values ?? []).map((v) => v.stringValue).filter(Boolean) : [];
+      const cacheRef = `artist-releases-cache/${clientId}_${favorite.artistId}`;
+      const cacheDoc = await getDoc(cacheRef, idToken);
+      const notifiedIds = cacheDoc ? (cacheDoc.fields?.albumIds?.arrayValue?.values ?? []).map((v) => v.stringValue).filter(Boolean) : [];
 
-    console.log(`[check-releases] artist=${favorite.name} cacheRef=${cacheRef} notifiedIds count=${notifiedIds.length} RELEASE_WINDOW_DAYS=${RELEASE_WINDOW_DAYS}`);
+      console.log(`[check-releases] artist=${favorite.name} cacheRef=${cacheRef} notifiedIds count=${notifiedIds.length} RELEASE_WINDOW_DAYS=${RELEASE_WINDOW_DAYS}`);
 
-    const albumsToNotify = albums.filter((a) => {
-      const isNew = isWithinWindow(a.release_date, RELEASE_WINDOW_DAYS);
-      const alreadyNotified = notifiedIds.includes(String(a.id));
-      console.log(`[check-releases]   album=${a.title} release_date=${a.release_date} isNew=${isNew} alreadyNotified=${alreadyNotified}`);
-      return isNew && !alreadyNotified;
-    });
+      const albumsToNotify = albums.filter((a) => {
+        const isNew = isWithinWindow(a.release_date, RELEASE_WINDOW_DAYS);
+        const alreadyNotified = notifiedIds.includes(String(a.id));
+        console.log(`[check-releases]   album=${a.title} release_date=${a.release_date} isNew=${isNew} alreadyNotified=${alreadyNotified}`);
+        return isNew && !alreadyNotified;
+      });
 
-    console.log(`[check-releases] albumsToNotify count: ${albumsToNotify.length}`);
-    if (albumsToNotify.length > 0) {
-      newReleasesByArtist[favorite.artistId] = albumsToNotify;
-      const updatedNotifiedIds = [...new Set([...notifiedIds, ...albumsToNotify.map((a) => String(a.id))])];
-      await setDoc(cacheRef, { albumIds: updatedNotifiedIds, checkedAt: Date.now() }, idToken);
-    }
-  }
+      console.log(`[check-releases] albumsToNotify count: ${albumsToNotify.length}`);
+      return { favorite, cacheRef, notifiedIds, albumsToNotify };
+    },
+  );
 
-  console.log(`[check-releases] newReleasesByArtist: ${JSON.stringify(Object.keys(newReleasesByArtist))}`);
+  console.log(
+    `[check-releases] newReleasesByArtist: ${JSON.stringify(
+      candidates
+        .filter((c) => c && c.albumsToNotify.length > 0)
+        .map((c) => c.favorite.artistId),
+    )}`,
+  );
 
   const results = [];
   let notified = 0;
   let didCleanup = false;
 
-  for (const favorite of favorites) {
-    const newAlbums = newReleasesByArtist[favorite.artistId];
-    if (!newAlbums?.length) continue;
+  for (const candidate of candidates) {
+    if (!candidate || candidate.albumsToNotify.length === 0) continue;
+    const { favorite, cacheRef, notifiedIds, albumsToNotify } = candidate;
 
-    console.log(`[check-releases] Sending ${newAlbums.length} notifications for ${favorite.name}`);
+    console.log(`[check-releases] Sending ${albumsToNotify.length} notifications for ${favorite.name}`);
 
     const artistResults = { artist: favorite.name, artistId: favorite.artistId, albums: [] };
+    const sentIds = [];
 
-    for (const album of newAlbums) {
+    for (const album of albumsToNotify) {
       const releaseType = RECORD_TYPE_MAP[album.record_type?.toLowerCase()] ?? 'Álbum';
       const coverUrl = album.cover_xl ?? album.cover_big ?? album.cover_medium ?? '';
 
@@ -385,10 +415,17 @@ async function run(uid, idToken, clientId) {
 
       if (sentAny) {
         notified++;
+        sentIds.push(String(album.id));
         artistResults.albums.push({ id: album.id, title: album.title, recordType: releaseType, sent: true });
       } else {
         artistResults.albums.push({ id: album.id, title: album.title, recordType: releaseType, sent: false, error: 'All subscriptions failed' });
       }
+    }
+
+    // Record only what was actually sent, so a partial run retries the rest.
+    if (sentIds.length > 0) {
+      const updatedNotifiedIds = [...new Set([...notifiedIds, ...sentIds])];
+      await setDoc(cacheRef, { albumIds: updatedNotifiedIds, checkedAt: Date.now() }, idToken);
     }
 
     results.push(artistResults);
@@ -429,18 +466,17 @@ export default async (req, res) => {
       }
 
       const subs = await listCollection('push-subscriptions', adminToken);
-      const results = [];
-      for (const sub of subs) {
+      const results = await mapWithConcurrency(subs, USER_CONCURRENCY, async (sub) => {
         try {
-          results.push({
+          return {
             uid: sub.id,
             ...(await run(sub.id, adminToken, 'cron')),
-          });
+          };
         } catch (err) {
           console.error(`[check-releases] cron run failed for ${sub.id}:`, err);
-          results.push({ uid: sub.id, error: err.message });
+          return { uid: sub.id, error: err.message };
         }
-      }
+      });
       return res.status(200).json({ users: results.length, results });
     }
 

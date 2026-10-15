@@ -2,6 +2,9 @@
   "buildCommand": "npm run build",
   "outputDirectory": "dist/music-wishlist-v2/browser",
   "installCommand": "npm install",
+  "functions": {
+    "api/check-releases.js": { "maxDuration": 60 }
+  },
   "headers": [
     {
       "source": "/",
