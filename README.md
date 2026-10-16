@@ -133,11 +133,9 @@ The installed app's `theme-color` (status bar / browser chrome) follows the acti
 
 ## Android app (Google Play)
 
-The app also ships as a Trusted Web Activity (TWA) wrapping the hosted PWA, packaged with Bubblewrap. Build a signed App Bundle with `npm run android` and publish it via the Google Play Developer API — see [`store/README.md`](store/README.md) for the full release flow, prerequisites and the closed-testing requirement.
+The app also ships as a **Capacitor** Android app that bundles the Angular build locally and runs it in a WebView (no TWA, no URL bar). Build a signed App Bundle with `npm run android` and publish it via the Google Play Developer API — see [`store/README.md`](store/README.md) for the full release flow, Firebase setup (native sign-in + FCM) and the closed-testing requirement.
 
-**Fallback**: if Digital Asset Links verification fails (missing/mismatched `.well-known/assetlinks.json`), the TWA degrades to a Custom Tab that shows the URL bar (`fallbackType: "customtabs"`).
-
-**Status-bar limitation**: unlike the installed PWA — whose `theme-color` follows the active theme dynamically — the TWA's native status/navigation bars are fixed at build time from `themeColor`/`navigationColor` in `android/twa-manifest.json` (both pinned to the dark `#22201f`). Dynamic runtime theming of TWA system bars is not supported yet.
+**Native integrations**: Google Sign-In uses `@capacitor-firebase/authentication` and push uses `@capacitor/push-notifications` (FCM); both need `android/app/google-services.json`. The shell handles the Android back button, deep links and notification taps, and the status bar follows the active theme at runtime.
 
 ## License
 

@@ -6,7 +6,8 @@ npm start              # dev server at localhost:4200 (uses proxy.conf.json)
 npm run build          # production build → dist/music-wishlist-v2/browser/
 npm test               # Karma/Jasmine unit tests
 ng test --include='**/wishlist.service.spec.ts'  # single test file
-npm run android        # TWA: sync android version from package.json + build signed AAB + mapping.txt
+npm run android        # Capacitor: sync android version from package.json + build signed AAB + mapping.txt
+npm run android:assets # Regenerate the Android launcher icon + splash from public/icon.svg (@capacitor/assets)
 npm run store:screenshots  # Play listing: capture 1080x1920 phone screenshots (Playwright, demo; STORE_CAPTURE_LANG=en|es)
 npm run store:feature      # Play listing: regenerate the 1024x500 feature graphic from the brand assets
 ```
@@ -52,14 +53,15 @@ Vercel cron runs `api/check-releases` daily at 09:00 UTC.
 On auth effect, initializes: `WishlistService`, `FavoriteArtistsService`, `WishlistShareService` listeners.
 
 ### Push notifications
-- **Web Push API** with VAPID (not FCM/`@angular/fire/messaging`)
-- Custom service worker at `public/service-worker.js` (registered from `main.ts`). Also uses Angular's `ngsw-config.json` for production asset caching (two SW systems).
-- Handles two notification types: `downloaded` (item downloaded from shared wishlist) and release notifications
-- `PushNotificationService` manages subscription client-side
-- Subscription stored at Firestore `push-subscriptions/{uid}`
-- Server uses `web-push` library with VAPID keys from env vars
+- **Two transports**: Web Push API with VAPID for the browser PWA, and **FCM HTTP v1** (`@capacitor/push-notifications`) for the native Capacitor app. The native path is selected with `Capacitor.isNativePlatform()`.
+- Web uses the custom service worker at `public/service-worker.js` (registered from `main.ts`, web only). The native app updates through Google Play.
+- Handles `downloaded`, release and `test` notifications
+- `PushNotificationService` manages device registration client-side for both transports
+- Registrations stored per device at Firestore `push-subscriptions/{uid}` (`subscriptions` map for web, `tokens` map for native)
+- Server sends web via the `web-push` library (VAPID env vars) and native via the FCM HTTP v1 `messages:send` API
 - Avoid `firebase-admin` SDK in endpoints (gRPC/OpenSSL issues on Vercel). Use Firestore REST API directly with Firebase ID token auth or service account OAuth2.
-- **`api/push.js`** handles 3 actions: `subscribe`, `unsubscribe`, `notify-downloaded`. The `notify-downloaded` action uses `FIREBASE_CLIENT_EMAIL` + `FIREBASE_PRIVATE_KEY` (service account, JWT via native `crypto`) to read the owner's `push-subscriptions/{uid}` and send via `web-push`. No new endpoint needed.
+- **`api/push.js`** handles 4 actions: `subscribe`, `unsubscribe`, `test`, `notify-downloaded`. Native sends use `FIREBASE_CLIENT_EMAIL` + `FIREBASE_PRIVATE_KEY` (service account OAuth2, scope `cloud-platform`) for FCM; web sends use `web-push`. No new endpoint needed.
+- `api/check-releases.js` sends release notifications to both transports.
 - `WishlistService.markDownloaded(entry)` takes full `WishlistEntry` and auto-sends push to the owner if `entry.addedByUid !== currentUser.uid`.
 
 ### State management
@@ -82,7 +84,8 @@ Angular signals throughout (no NgRx):
 - `SearchService` caches album, albumTracks, artist, artistTracks in-memory; search state in `sessionStorage`
 - `shell.component.ts` has two layouts (desktop ≥768px / mobile) with 3 tabs: releases, search, wishlist (state-driven via `activeTab` signal, saved to localStorage as `defaultTab`)
 - Installed PWA `theme-color` is dynamic: `ThemeService` updates the managed `theme-color` meta (`#22201f` dark / `#e5e0d8` light) whenever the effective theme changes; an inline script in `src/index.html` applies the saved/system theme before Angular loads to avoid a flash. `public/manifest.json` is the source of truth for colors (`theme_color`/`background_color` = `#22201f`).
-- Android ships as a **Bubblewrap TWA** in `android/` (package `com.musicwishlist.app`). `npm run android` runs `scripts/sync-android-version.js` (derives `appVersionCode` = `major*10000+minor*100+patch` from `package.json`) then `bubblewrap update --skipVersionUpgrade` + `bubblewrap build`. Keystore, password and `~/.bubblewrap/config.json` (JDK 17 + Android SDK paths) live outside the repo. Digital Asset Links at `public/.well-known/assetlinks.json` (upload-key SHA-256). Publish via the `google-play-console` skill's `play.mjs`; see `store/README.md`.
+- Android ships as a **Capacitor** app in `android/` (package `com.musicwishlist.app`, `capacitor.config.ts`, `webDir` = `dist/music-wishlist-v2/browser`) that bundles the Angular build locally — no TWA and no Digital Asset Links. `npm run android` runs `scripts/sync-android-version.js` (derives `versionCode` = `major*10000+minor*100+patch` into `android/app/build.gradle`), builds the web app, runs `cap sync android`, then `./gradlew bundleRelease`. Native sign-in and push need `android/app/google-services.json` + an Android OAuth client (see `store/README.md`). Publish via the `google-play-console` skill's `play.mjs`.
+- Native Google Sign-In (`@capacitor-firebase/authentication`) requires `plugins.FirebaseAuthentication.providers` to include `google.com` in `capacitor.config.ts` **and** `rgcfaIncludeGoogle = true` in `android/variables.gradle`; missing either makes `signInWithGoogle()` throw a `NullPointerException`. `loggingBehavior: 'production'` is enabled so JS console output is visible in `adb logcat`.
 
 ### Key paths
 | Path | Purpose |
@@ -93,7 +96,10 @@ Angular signals throughout (no NgRx):
 | `src/app/core/firebase/wishlist-share.service.ts` | Wishlist sharing + batch sharedWith update |
 | `src/app/core/firebase/wishlist-invite.service.ts` | Wishlist invite management |
 | `src/app/core/firebase/favorite-artists.service.ts` | Favorite artists CRUD with Deezer image enrichment |
-| `src/app/core/services/push-notification.service.ts` | Web Push subscription |
+| `src/app/core/services/push-notification.service.ts` | Device push registration (Web Push + native FCM) |
+| `src/app/core/native/native-shell.service.ts` | Native shell: back button, deep links, notification taps, status bar |
+| `src/app/core/native/native-push.ts` | Injectable wrapper over `@capacitor/push-notifications` |
+| `src/app/core/api/api-base-url.interceptor.ts` | Prefixes `/api/*` with `apiBaseUrl` on native |
 | `src/app/core/services/preview.service.ts` | HTML5 audio track preview player |
 | `src/app/core/services/modal.service.ts` | CDK Overlay-based modal |
 | `src/app/core/services/navigation.service.ts` | URL history tracking for back navigation |
@@ -103,14 +109,17 @@ Angular signals throughout (no NgRx):
 | `src/app/core/theme/theme.service.ts` | Light/dark/system theme |
 | `src/app/core/i18n/language.service.ts` | es/en translations |
 | `src/app/core/version/version.service.ts` | Fetch `/version.json` |
-| `android/` | Bubblewrap TWA project (`twa-manifest.json`, Gradle) |
-| `scripts/sync-android-version.js` | Derive Android version from `package.json` |
-| `scripts/android-release.js` | `npm run android`: version sync + signed AAB + mapping |
+| `android/` | Capacitor Android project (Gradle, `app/build.gradle`, `google-services.json`) |
+| `capacitor.config.ts` | Capacitor app id, name, `webDir`, splash/status-bar plugins |
+| `resources/` | Android native branding source images consumed by `@capacitor/assets` (icon + splash) |
+| `scripts/generate-native-branding.mjs` | `npm run android:assets`: render `public/icon.svg` → `resources/` + regenerate Android icon/splash |
+| `scripts/sync-android-version.js` | Derive Android version into `android/app/build.gradle` |
+| `scripts/android-release.js` | `npm run android`: version sync + web build + `cap sync` + signed AAB + mapping |
 | `store/README.md` | Google Play release flow and prerequisites |
 | `store/listing/` | Play Store listing copy (`listing.<lang>.json`) + images, applied via the skill's `play.mjs listing` |
 | `scripts/capture-store-screenshots.mjs` | `npm run store:screenshots`: Playwright captures of every app section |
 | `scripts/generate-feature-graphic.mjs` | `npm run store:feature`: renders the feature graphic from `public/icon.svg` + the header wordmark |
-| `public/.well-known/assetlinks.json` | Digital Asset Links (TWA verification) |
+| `src/main.ts` | Bootstrap + service-worker registration (web only) |
 | `src/app/shell/shell.component.ts` | Root layout (desktop/mobile with 3 tabs) |
 | `src/app/features/login/` | Login page |
 | `src/app/features/wishlist/` | Wishlist tab |

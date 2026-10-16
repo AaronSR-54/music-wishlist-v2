@@ -1,7 +1,7 @@
 # Google Play — release guide
 
-Android app: TWA wrapping `https://music-wishlist-v2.vercel.app`.
-Package: `com.musicwishlist.app`. Tooling: `@bubblewrap/cli` + Google Play Developer API.
+Android app: Capacitor wrapper over the bundled Angular build (no TWA, no Digital Asset Links).
+Package: `com.musicwishlist.app`. Tooling: `@capacitor/cli` + Google Play Developer API.
 
 ## 1. Build the bundle
 
@@ -9,18 +9,36 @@ Package: `com.musicwishlist.app`. Tooling: `@bubblewrap/cli` + Google Play Devel
 npm run android
 ```
 
-- Syncs `appVersionCode`/`appVersionName` in `android/twa-manifest.json` from `package.json`
+- Syncs `versionCode`/`versionName` in `android/app/build.gradle` from `package.json`
   (`versionCode = major*10000 + minor*100 + patch`).
-- Regenerates the Android project and builds a signed AAB + mapping.
+- Builds the Angular app, copies it into the Capacitor project (`cap sync android`) and builds a
+  signed AAB + R8 mapping.
 
 Outputs:
 
-- `android/app-release-bundle.aab` (upload this)
+- `android/app/build/outputs/bundle/release/app-release.aab` (upload this)
 - `android/app/build/outputs/mapping/release/mapping.txt` (deobfuscation)
 
 The upload keystore lives **outside the repo** at `~/.config/music-wishlist/android.keystore`
 (alias `android`), password in `~/.config/music-wishlist/keystore.password` (chmod 600).
 Never commit it; losing it means the app can never be updated.
+
+### Native branding (launcher icon + splash)
+
+The Android launcher icon and splash screen are generated from the brand mark in `public/icon.svg`
+by `@capacitor/assets`, driven by the source images in `resources/`:
+
+```bash
+npm run android:assets
+```
+
+- Composes `resources/icon-only.png` (mark on `#22201f`), `resources/icon-foreground.png`
+  (transparent mark), `resources/icon-background.png` (`#22201f`) and `resources/splash.png`
+  (mark centred on `#22201f`) from `public/icon.svg`.
+- Regenerates every `android/app/src/main/res/mipmap-*` launcher variant and `drawable*/splash.png`
+  density, so the icon and splash only ever need editing through `public/icon.svg`.
+
+Run it after changing the brand mark, before `npm run android`.
 
 ## 2. Prerequisites (manual, in Play Console)
 
@@ -46,16 +64,54 @@ Also required before publishing (not available via the API):
 - **Categoría y datos de contacto**: Música y audio + web `https://music-wishlist-v2.vercel.app` (Play requiere además un email de desarrollador).
 - **Ficha de Play Store**: se sube con el comando `listing` de la skill (ver *Ficha de Play Store* más abajo).
 
-## 3. Digital Asset Links
+## 3. Firebase configuration (native auth + push)
 
-`public/.well-known/assetlinks.json` lists the upload-key SHA-256 fingerprint so the TWA opens
-without a URL bar. After deploying, verify it is served as `application/json`:
+The Capacitor app uses **native Google Sign-In** and **Firebase Cloud Messaging**. Both need the
+Android app registered in the Firebase project (the same project as the web app):
+
+1. Firebase Console → project settings → add an **Android app** with package
+   `com.musicwishlist.app`.
+2. Add the **SHA-1** of the signing certificate (Play Console → *Release → Setup → App integrity* →
+   app signing key certificate; add the upload-key SHA-1 as well for local builds) and download
+   **`google-services.json`** into `android/app/google-services.json` (never committed).
+3. Enable **Cloud Messaging**. The server sends native push through FCM HTTP v1 using the
+   `FIREBASE_CLIENT_EMAIL` / `FIREBASE_PRIVATE_KEY` service account (scope `cloud-platform`).
+
+This is already done for `music-whitelist` (Android app
+`1:513306310710:android:1e937ad3f19a57b51a0097`, FCM enabled, upload-key SHA-1 registered). With the
+Firebase CLI logged in it can be reproduced/redone from scratch:
 
 ```bash
-curl -I https://music-wishlist-v2.vercel.app/.well-known/assetlinks.json
+npx firebase-tools apps:create ANDROID "Music Wishlist" \
+  --package-name com.musicwishlist.app --project music-whitelist
+npx firebase-tools apps:sdkconfig ANDROID <appId> \
+  --out android/app/google-services.json --project music-whitelist
+# SHA-1 (upload key) via the Firebase Management API:
+#   POST https://firebase.googleapis.com/v1beta1/projects/music-whitelist/androidApps/<appId>/sha
+#   { "shaHash": "<SHA-1>", "certType": "SHA_1" }
 ```
 
-If the URL bar still shows, the fingerprint or package name does not match the installed signer.
+> **Play-distributed testing:** both fingerprints are registered for `music-whitelist` — the
+> **upload key** (`6b9f05…`, local/sideloaded builds) and the **Play App Signing key**
+> (`90a7a7…`, builds served by Google Play). Add any new key from Play Console →
+> *Protected with Play → Play Store distribution → Play app signing → App signing key certificate*.
+
+Without `google-services.json` the app still builds, but native sign-in and push stay disabled.
+Web Push (VAPID) is unchanged and used only by the browser PWA; native tokens and web subscriptions
+are stored together per device in `push-subscriptions/{uid}`.
+
+### Native Google Sign-In (required, easy to miss)
+
+`@capacitor-firebase/authentication` needs **both** of these, or `signInWithGoogle()` throws
+`NullPointerException` (the Google handler is never initialized):
+
+1. `capacitor.config.ts` → `plugins.FirebaseAuthentication.providers` must include `google.com`
+   (and `skipNativeAuth: true`, since the Web SDK owns the session).
+2. `android/variables.gradle` → `rgcfaIncludeGoogle = true`, so `play-services-auth` and the
+   Credential Manager libraries are actually packaged (otherwise they're `compileOnly`).
+
+`variables.gradle` is versioned, but re-running `npx cap add android` regenerates it — re-add
+`rgcfaIncludeGoogle = true` after doing so.
 
 ## Ficha de Play Store (listing)
 
@@ -121,15 +177,15 @@ node "$PLAY" status --package com.musicwishlist.app
 
 # Upload to internal (dry-run first, then for real)
 node "$PLAY" upload \
-  --bundle android/app-release-bundle.aab \
+  --bundle android/app/build/outputs/bundle/release/app-release.aab \
   --track internal \
   --notes store/release-notes.md \
-  --name "0.16.1" \
+  --name "0.22.0" \
   --mapping android/app/build/outputs/mapping/release/mapping.txt \
   --dry-run
 
 # Reuse an already-uploaded AAB on another track
-node "$PLAY" upload --version-code 1601 --track alpha --notes store/release-notes.md
+node "$PLAY" upload --version-code 2200 --track alpha --notes store/release-notes.md
 ```
 
 ## 5. Testing requirement and promotion path
