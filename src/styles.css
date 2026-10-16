@@ -30,6 +30,16 @@ body {
   border-style: solid;
 }
 
+/* Keep app chrome clear of the Android/iOS system bars when edge-to-edge is
+   enforced (viewport-fit=cover). Capacitor 8's SystemBars plugin injects
+   --safe-area-inset-* (pixel values) into :root; on the web we fall back to the
+   standard env() insets. The padded strip shows the container's own background,
+   so the bars match the active theme. */
+.safe-area-inset {
+  padding-top: var(--safe-area-inset-top, env(safe-area-inset-top, 0px));
+  padding-bottom: var(--safe-area-inset-bottom, env(safe-area-inset-bottom, 0px));
+}
+
 @keyframes fadeIn {
   from {
     opacity: 0;

@@ -15,4 +15,6 @@
 -->
 <resources>
     <color name="shortcut_background">#F5F5F5</color>
+    <color name="splashBackground">#22201f</color>
+    <color name="windowBackground">#e5e0d8</color>
 </resources>
