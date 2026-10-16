@@ -4,6 +4,7 @@ import { map, switchMap, catchError } from 'rxjs/operators';
 import { Track, TrackType } from '../../shared/models/track.model';
 import { ReleaseItem, AlbumTrack } from '../../shared/models/release-item.model';
 import { AlbumInfo } from '../services/preview.service';
+import { apiUrl } from './api-url';
 import {
   DeezerTrack,
   DeezerAlbum,
@@ -40,15 +41,15 @@ export class SearchService {
     const searchTerm = q.toLowerCase();
 
     const songs$ = from(
-      fetch(`${this.apiUrl}/search?q=${term}`).then((r) => r.json()),
+      fetch(apiUrl(`${this.apiUrl}/search?q=${term}`)).then((r) => r.json()),
     );
 
     const albums$ = from(
-      fetch(`${this.apiUrl}/search/album?q=${term}`).then((r) => r.json()),
+      fetch(apiUrl(`${this.apiUrl}/search/album?q=${term}`)).then((r) => r.json()),
     );
 
     const artists$ = from(
-      fetch(`${this.apiUrl}/search/artist?q=${term}`).then((r) => r.json()),
+      fetch(apiUrl(`${this.apiUrl}/search/artist?q=${term}`)).then((r) => r.json()),
     );
 
     return forkJoin([songs$, albums$, artists$]).pipe(
@@ -67,7 +68,7 @@ export class SearchService {
           artistId: t.artist?.id ? String(t.artist.id) : undefined,
           albumId: t.album?.id ? String(t.album.id) : undefined,
           albumName: t.album?.title ?? undefined,
-          previewUrl: t.preview ? `/api/preview?url=${encodeURIComponent(t.preview)}` : undefined,
+          previewUrl: t.preview ? apiUrl(`/api/preview?url=${encodeURIComponent(t.preview)}`) : undefined,
         }));
 
         const albums: Track[] = (albumsResponse.data ?? []).map((a: DeezerAlbum) => ({
@@ -121,7 +122,7 @@ export class SearchService {
     }
 
     return from(
-      fetch(`${this.apiUrl}/artist?id=${artistId}`).then((r) => r.json()),
+      fetch(apiUrl(`${this.apiUrl}/artist?id=${artistId}`)).then((r) => r.json()),
     ).pipe(
       map((res: DArtistTracksResponse) => {
         const tracks = (res.data ?? []).map((t: DeezerTrack) => ({
@@ -134,7 +135,7 @@ export class SearchService {
           artistId: t.artist?.id ? String(t.artist.id) : undefined,
           albumId: t.album?.id ? String(t.album.id) : undefined,
           albumName: t.album?.title ?? undefined,
-          previewUrl: t.preview ? `/api/preview?url=${encodeURIComponent(t.preview)}` : undefined,
+          previewUrl: t.preview ? apiUrl(`/api/preview?url=${encodeURIComponent(t.preview)}`) : undefined,
         }));
         this.artistTracksCache.set(artistId, tracks);
         return limit ? tracks.slice(0, limit) : tracks;
@@ -149,7 +150,7 @@ export class SearchService {
     }
 
     return from(
-      fetch(`${this.apiUrl}/artist-info?id=${artistId}`).then((r) => r.json()),
+      fetch(apiUrl(`${this.apiUrl}/artist-info?id=${artistId}`)).then((r) => r.json()),
     ).pipe(
       map((res) => {
         this.artistCache.set(artistId, res);
@@ -164,7 +165,7 @@ export class SearchService {
     artistName: string,
   ): Observable<ReleaseItem[]> {
     return from(
-      fetch(`${this.apiUrl}/artist-albums?id=${artistId}`).then((r) =>
+      fetch(apiUrl(`${this.apiUrl}/artist-albums?id=${artistId}`)).then((r) =>
         r.json(),
       ),
     ).pipe(
@@ -186,14 +187,14 @@ export class SearchService {
 
         const previewCalls = singles.map((s) =>
           from(
-            fetch(`${this.apiUrl}/album-tracks?id=${s.id}`).then((r) =>
+            fetch(apiUrl(`${this.apiUrl}/album-tracks?id=${s.id}`)).then((r) =>
               r.json(),
             ),
           ).pipe(
             map((tracksRes: DAlbumTracksResponse) => ({
               id: s.id,
               previewUrl: tracksRes.data?.[0]?.preview
-                ? `/api/preview?url=${encodeURIComponent(tracksRes.data[0].preview)}`
+                ? apiUrl(`/api/preview?url=${encodeURIComponent(tracksRes.data[0].preview)}`)
                 : undefined,
             })),
             catchError(() => of({ id: s.id, previewUrl: undefined })),
@@ -286,11 +287,11 @@ export class SearchService {
 
   getTrackPreview(trackId: string): Observable<string | undefined> {
     return from(
-      fetch(`${this.apiUrl}/track?id=${trackId}`).then((r) => r.json()),
+      fetch(apiUrl(`${this.apiUrl}/track?id=${trackId}`)).then((r) => r.json()),
     ).pipe(
       map((res: DTrackPreviewResponse) => {
         const previewUrl = res.preview;
-        return previewUrl ? `/api/preview?url=${encodeURIComponent(previewUrl)}` : undefined;
+        return previewUrl ? apiUrl(`/api/preview?url=${encodeURIComponent(previewUrl)}`) : undefined;
       }),
       catchError(() => of(undefined)),
     );
@@ -302,7 +303,7 @@ export class SearchService {
     }
 
     return from(
-      fetch(`${this.apiUrl}/album-tracks?id=${albumId}`).then((r) => r.json()),
+      fetch(apiUrl(`${this.apiUrl}/album-tracks?id=${albumId}`)).then((r) => r.json()),
     ).pipe(
       map((res: DAlbumTracksResponse) => {
         const tracks = (res.data ?? []).map((t: DeezerTrack, index: number) => ({
@@ -311,7 +312,7 @@ export class SearchService {
           duration: t.duration ?? 0,
           trackNumber: index + 1,
           previewUrl: t.preview
-            ? `/api/preview?url=${encodeURIComponent(t.preview)}`
+            ? apiUrl(`/api/preview?url=${encodeURIComponent(t.preview)}`)
             : undefined,
         }));
         this.albumTracksCache.set(albumId, tracks);
@@ -335,7 +336,7 @@ export class SearchService {
     }
 
     return from(
-      fetch(`${this.apiUrl}/album?id=${albumId}`).then((r) => r.json()),
+      fetch(apiUrl(`${this.apiUrl}/album?id=${albumId}`)).then((r) => r.json()),
     ).pipe(
       map((res: DAlbumInfoResponse) => {
         const album = {

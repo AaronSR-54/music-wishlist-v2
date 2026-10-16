@@ -25,6 +25,7 @@ import { LanguageService } from '../../core/i18n/language.service';
 import { PageHeaderComponent } from '../../shared/components/page-header/page-header.component';
 import { ContextMenuPanelComponent } from '../../shared/components/context-menu-panel/context-menu-panel.component';
 import { ToastService } from '../../shared/components/toast/toast.component';
+import { apiUrl } from '../../core/api/api-url';
 
 @Component({
   selector: 'app-releases',
@@ -357,7 +358,9 @@ export class ReleasesComponent {
     const artistObservables = favorites.map((fav) =>
       from(
         this.fetchJson(
-          `${this.apiUrl}/artist-albums?id=${encodeURIComponent(fav.artistId)}&limit=100`,
+          apiUrl(
+            `${this.apiUrl}/artist-albums?id=${encodeURIComponent(fav.artistId)}&limit=100`,
+          ),
         ),
       ).pipe(
         map(
@@ -435,13 +438,13 @@ export class ReleasesComponent {
     const previewCalls = singles.map((s) =>
       from(
         this.fetchJson(
-          `${this.apiUrl}/album-tracks?id=${encodeURIComponent(s.id)}`,
+          apiUrl(`${this.apiUrl}/album-tracks?id=${encodeURIComponent(s.id)}`),
         ),
       ).pipe(
         map((tracksRes: DAlbumTracksResponse) => ({
           id: s.id,
           previewUrl: tracksRes.data?.[0]?.preview
-            ? `/api/preview?url=${encodeURIComponent(tracksRes.data[0].preview)}`
+            ? apiUrl(`/api/preview?url=${encodeURIComponent(tracksRes.data[0].preview)}`)
             : undefined,
         })),
         catchError(() => of({ id: s.id, previewUrl: undefined })),
