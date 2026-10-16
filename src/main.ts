@@ -1,9 +1,13 @@
 import { bootstrapApplication } from '@angular/platform-browser';
+import { Capacitor } from '@capacitor/core';
 import { appConfig } from './app/app.config';
 import { App } from './app/app';
 
 bootstrapApplication(App, appConfig)
   .then(async () => {
+    // The native Capacitor shell updates through Google Play; only the web
+    // build uses the service worker.
+    if (Capacitor.isNativePlatform()) return;
     if (!('serviceWorker' in navigator)) return;
 
     // Version the service worker script URL so every release triggers a new

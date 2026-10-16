@@ -3,6 +3,7 @@ import { RouterOutlet } from '@angular/router';
 import { ThemeService } from './core/theme/theme.service';
 import { ToastContainerComponent } from './shared/components/toast/toast.component';
 import { UpdateService } from './core/services/update.service';
+import { NativeShellService } from './core/native/native-shell.service';
 
 @Component({
   selector: 'app-root',
@@ -18,5 +19,6 @@ export class App {
   constructor() {
     inject(ThemeService);
     inject(UpdateService);
+    inject(NativeShellService);
   }
 }
