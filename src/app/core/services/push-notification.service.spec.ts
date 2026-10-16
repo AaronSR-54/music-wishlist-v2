@@ -1,10 +1,12 @@
 import { TestBed } from '@angular/core/testing';
 import { HttpClient } from '@angular/common/http';
 import { of, throwError } from 'rxjs';
+import { Capacitor } from '@capacitor/core';
 import {
   PushNotificationService,
   detectUnsupportedReason,
 } from './push-notification.service';
+import { NATIVE_PUSH } from '../native/native-push';
 import { AuthService } from '../auth/auth.service';
 
 describe('detectUnsupportedReason', () => {
@@ -46,6 +48,12 @@ describe('detectUnsupportedReason', () => {
 describe('PushNotificationService', () => {
   let httpPost: jasmine.Spy;
   let auth: { demoMode: () => boolean; currentUser: () => unknown };
+  let nativePush: {
+    requestPermissions: jasmine.Spy;
+    checkPermissions: jasmine.Spy;
+    register: jasmine.Spy;
+    addListener: jasmine.Spy;
+  };
 
   const fakeSub = {
     endpoint: 'https://example.com/push',
@@ -58,6 +66,18 @@ describe('PushNotificationService', () => {
     auth = {
       demoMode: () => false,
       currentUser: () => ({ getIdToken: async () => 'token' }),
+    };
+    nativePush = {
+      requestPermissions: jasmine
+        .createSpy('requestPermissions')
+        .and.resolveTo({ receive: 'granted' }),
+      checkPermissions: jasmine
+        .createSpy('checkPermissions')
+        .and.resolveTo({ receive: 'granted' }),
+      register: jasmine.createSpy('register').and.resolveTo(),
+      addListener: jasmine
+        .createSpy('addListener')
+        .and.resolveTo({ remove: async () => {} }),
     };
 
     Object.defineProperty(navigator, 'serviceWorker', {
@@ -79,6 +99,7 @@ describe('PushNotificationService', () => {
         PushNotificationService,
         { provide: HttpClient, useValue: { post: httpPost } },
         { provide: AuthService, useValue: auth },
+        { provide: NATIVE_PUSH, useValue: nativePush },
       ],
     });
   });
@@ -117,6 +138,17 @@ describe('PushNotificationService', () => {
     const svc = TestBed.inject(PushNotificationService);
 
     expect(await svc.sendTest()).toBeTrue();
+  });
+
+  it('uses the native plugin to subscribe on a native platform', async () => {
+    spyOn(Capacitor, 'isNativePlatform').and.returnValue(true);
+
+    const svc = TestBed.inject(PushNotificationService);
+
+    expect(svc.isNative).toBeTrue();
+    expect(await svc.subscribe()).toBe('granted');
+    expect(nativePush.requestPermissions).toHaveBeenCalled();
+    expect(nativePush.register).toHaveBeenCalled();
   });
 
   it('sendTest re-registers the browser subscription and retries after a 404', async () => {
