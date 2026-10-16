@@ -63,6 +63,7 @@ Thumbs.db
 *.keystore
 *.jks
 .env*
+android/app/google-services.json
 
 # Firebase emulator
 firestore-debug.log
