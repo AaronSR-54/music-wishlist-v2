@@ -1,14 +1,12 @@
 <es-ES>
-Primera versión de Music Wishlist en Google Play.
-• Busca en Deezer y guarda álbumes y canciones en tu lista de deseos.
-• Marca descargados, comparte tu lista e invita a quien quieras.
-• Sigue a tus artistas y recibe avisos de nuevos lanzamientos.
-• Tema claro/oscuro y notificaciones push.
+Novedades de la versión 0.22.2:
+• Icono de la app y pantalla de inicio con la imagen de marca de Music Wishlist.
+• La barra de estado se adapta al tema claro/oscuro.
+• Correcciones y ajustes internos.
 </es-ES>
 <en-US>
-First release of Music Wishlist on Google Play.
-• Search Deezer and save albums and tracks to your wishlist.
-• Mark items as downloaded, share your wishlist and invite others.
-• Follow artists and get notified about new releases.
-• Light/dark theme and push notifications.
+What's new in version 0.22.2:
+• App icon and splash screen now use the Music Wishlist brand artwork.
+• The status bar follows the light/dark theme.
+• Internal fixes and tweaks.
 </en-US>
