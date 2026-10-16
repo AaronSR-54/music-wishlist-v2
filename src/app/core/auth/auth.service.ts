@@ -9,14 +9,19 @@ import {
 import { Router } from '@angular/router';
 import {
   Auth,
+  AuthCredential,
   GoogleAuthProvider,
   deleteUser,
+  reauthenticateWithCredential,
   reauthenticateWithPopup,
+  signInWithCredential,
   signInWithPopup,
   signOut,
   authState,
 } from '@angular/fire/auth';
 import { toSignal } from '@angular/core/rxjs-interop';
+import { Capacitor } from '@capacitor/core';
+import { FirebaseAuthentication } from '@capacitor-firebase/authentication';
 import { WishlistService } from '../firebase/wishlist.service';
 import { FavoriteArtistsService } from '../firebase/favorite-artists.service';
 import { WishlistShareService } from '../firebase/wishlist-share.service';
@@ -109,9 +114,25 @@ export class AuthService {
   }
 
   async loginWithGoogle(): Promise<void> {
-    const provider = new GoogleAuthProvider();
-    await signInWithPopup(this.auth, provider);
+    if (Capacitor.isNativePlatform()) {
+      await signInWithCredential(
+        this.auth,
+        await this.nativeGoogleCredential(),
+      );
+    } else {
+      const provider = new GoogleAuthProvider();
+      await signInWithPopup(this.auth, provider);
+    }
     this.router.navigate(['/']);
+  }
+
+  private async nativeGoogleCredential(): Promise<AuthCredential> {
+    const result = await FirebaseAuthentication.signInWithGoogle({
+      skipNativeAuth: true,
+    });
+    const idToken = result.credential?.idToken;
+    if (!idToken) throw new Error('native-auth-no-id-token');
+    return GoogleAuthProvider.credential(idToken, result.credential?.accessToken);
   }
 
   async logout(): Promise<void> {
@@ -134,6 +155,11 @@ export class AuthService {
   async reauthenticate(): Promise<void> {
     const user = this.auth.currentUser;
     if (!user) throw new Error('no-user');
+
+    if (Capacitor.isNativePlatform()) {
+      await reauthenticateWithCredential(user, await this.nativeGoogleCredential());
+      return;
+    }
 
     const provider = new GoogleAuthProvider();
     await reauthenticateWithPopup(user, provider);
