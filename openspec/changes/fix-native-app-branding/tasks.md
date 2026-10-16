@@ -26,6 +26,13 @@
 - [x] 5.1 Bump `package.json` version (patch) and run `npm run android`; verify the signed AAB and `mapping.txt` are produced and the AAB `versionCode`/`versionName` match the bumped version.
 - [x] 5.2 Install the build on a device; verify the launcher icon, splash (portrait + landscape) and status bar (light + dark, plus a theme change at runtime) match the brand and leave no default Capacitor mark or white flash. Verified on an Android 16 (API 36) emulator (launcher icon, portrait + landscape splash, light/dark status bar via a runtime theme change); a pre-Android-15 device was unavailable in this environment. Caveat: on WebView < 140 the bar strip follows the system night mode (`windowBackground`) rather than a forced app theme; WebView >= 140 honors the app theme through the safe-area CSS.
 
+## 6. Navigation bar matches the footer
+
+- [ ] 6.1 Keep the top safe-area inset on the shell container but move the bottom inset inside the tab bar (`padding-bottom: calc(1.5rem + var(--safe-area-inset-bottom, env(safe-area-inset-bottom, 0px)))`) so the gesture navigation-bar strip renders the footer background (`bg-light`/`dark:bg-dark`) instead of the page background; verify the nav bar area matches the footer in both themes.
+- [ ] 6.2 Give the floating player the same bottom inset so it keeps clearing the (now taller) footer; verify the player does not overlap the tab bar.
+- [ ] 6.3 Set the icon/gesture-handle contrast of both bars with `SystemBars.setStyle({ style: dark ? SystemBarsStyle.Dark : SystemBarsStyle.Light })` in `native-shell.service.ts` (keeping the best-effort `StatusBar.setBackgroundColor`); verify the status-bar icons and navigation handle stay legible when the theme changes at runtime.
+- [ ] 6.4 Re-verify on device (light + dark, runtime theme change): the gesture navigation-bar area matches the footer, the header area still matches the top background, and no default/white strip remains.
+
 ## Workflow follow-up
 
 - Archive the change after the on-device verification passes.

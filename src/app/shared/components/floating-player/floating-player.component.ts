@@ -15,7 +15,7 @@ import { PreviewService } from '../../../core/services/preview.service';
   changeDetection: ChangeDetectionStrategy.OnPush,
   host: {
     class:
-      'fixed bottom-[5.4rem] md:top-2 md:bottom-auto z-50 left-2 right-2 md:left-1/2 md:right-auto md:w-[30rem] md:-translate-x-1/2 animate-slide-up',
+      'fixed floating-player-offset md:top-2 z-50 left-2 right-2 md:left-1/2 md:right-auto md:w-[30rem] md:-translate-x-1/2 animate-slide-up',
   },
   template: `
     <div

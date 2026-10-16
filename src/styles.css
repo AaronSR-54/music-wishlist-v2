@@ -33,11 +33,36 @@ body {
 /* Keep app chrome clear of the Android/iOS system bars when edge-to-edge is
    enforced (viewport-fit=cover). Capacitor 8's SystemBars plugin injects
    --safe-area-inset-* (pixel values) into :root; on the web we fall back to the
-   standard env() insets. The padded strip shows the container's own background,
-   so the bars match the active theme. */
+   standard env() insets.
+
+   The top inset pads the shell container, whose background matches the header.
+   The bottom inset lives inside the tab bar so the strip behind the gesture
+   navigation bar shows the footer color, not the page background. */
 .safe-area-inset {
   padding-top: var(--safe-area-inset-top, env(safe-area-inset-top, 0px));
   padding-bottom: var(--safe-area-inset-bottom, env(safe-area-inset-bottom, 0px));
+}
+
+.safe-area-inset-top {
+  padding-top: var(--safe-area-inset-top, env(safe-area-inset-top, 0px));
+}
+
+.tab-bar-safe-bottom {
+  padding-bottom: calc(
+    1.5rem + var(--safe-area-inset-bottom, env(safe-area-inset-bottom, 0px))
+  );
+}
+
+.floating-player-offset {
+  bottom: calc(
+    5.4rem + var(--safe-area-inset-bottom, env(safe-area-inset-bottom, 0px))
+  );
+}
+
+@media (min-width: 768px) {
+  .floating-player-offset {
+    bottom: auto;
+  }
 }
 
 @keyframes fadeIn {

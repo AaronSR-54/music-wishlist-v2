@@ -17,7 +17,7 @@ import { LanguageService } from '../../core/i18n/language.service';
   imports: [IconComponent],
   template: `
     <nav
-      class="flex p-2 pb-6 bg-light dark:bg-dark shadow-[0px_-4px_10px_5px_rgb(0_0_0/10%)] shrink-0 rounded-tl-xl rounded-tr-xl w-full"
+      class="flex p-2 tab-bar-safe-bottom bg-light dark:bg-dark shadow-[0px_-4px_10px_5px_rgb(0_0_0/10%)] shrink-0 rounded-tl-xl rounded-tr-xl w-full"
     >
       <button
         class="flex items-center justify-center gap-3 border-none cursor-pointer font-body text-sm font-medium tracking-[0.04em] transition-colors duration-fast ease-smooth py-3 rounded-pill"

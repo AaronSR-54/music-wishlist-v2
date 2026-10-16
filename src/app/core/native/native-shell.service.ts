@@ -1,10 +1,10 @@
 import { Injectable, NgZone, effect, inject } from '@angular/core';
 import { Router } from '@angular/router';
 import { App as CapacitorApp } from '@capacitor/app';
-import { Capacitor } from '@capacitor/core';
+import { Capacitor, SystemBars, SystemBarsStyle } from '@capacitor/core';
 import { PushNotifications } from '@capacitor/push-notifications';
 import { SplashScreen } from '@capacitor/splash-screen';
-import { StatusBar, Style } from '@capacitor/status-bar';
+import { StatusBar } from '@capacitor/status-bar';
 import { ThemeService } from '../theme/theme.service';
 
 const BRAND_BACKGROUND = '#22201f';
@@ -24,7 +24,7 @@ export class NativeShellService {
 
     effect(() => {
       const dark = this.theme.isDarkMode();
-      void this.applyStatusBar(dark);
+      void this.applySystemBars(dark);
     });
 
     void SplashScreen.hide();
@@ -77,14 +77,21 @@ export class NativeShellService {
     }
   }
 
-  private async applyStatusBar(dark: boolean): Promise<void> {
+  private async applySystemBars(dark: boolean): Promise<void> {
     try {
-      await StatusBar.setStyle({ style: dark ? Style.Dark : Style.Light });
+      await SystemBars.setStyle({
+        style: dark ? SystemBarsStyle.Dark : SystemBarsStyle.Light,
+      });
+    } catch {
+      // SystemBars plugin unavailable (e.g. before the first sync).
+    }
+
+    try {
       await StatusBar.setBackgroundColor({
         color: dark ? BRAND_BACKGROUND : '#e5e0d8',
       });
     } catch {
-      // Status bar plugin unavailable (e.g. before the first sync).
+      // Best-effort on pre-Android-15; a no-op on Android 15+ edge-to-edge.
     }
   }
 }

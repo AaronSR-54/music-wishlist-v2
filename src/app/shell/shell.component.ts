@@ -107,7 +107,9 @@ type Tab = 'releases' | 'search' | 'wishlist';
 
     } @else {
     <!-- MOBILE -->
-    <div class="bg-bone-300 dark:bg-ink flex flex-col h-full safe-area-inset">
+    <div
+      class="bg-bone-300 dark:bg-ink flex flex-col h-full safe-area-inset-top"
+    >
       <app-header class="z-10" (openProfile)="goToProfile()" />
 
       <main

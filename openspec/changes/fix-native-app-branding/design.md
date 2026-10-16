@@ -74,18 +74,35 @@ edge-to-edge and let the app paint the bar area:
   plugin (default `insetsHandling: css`) injects `--safe-area-inset-*` pixel variables into `:root`,
   so the utility reads `var(--safe-area-inset-top, env(safe-area-inset-top, 0px))` (and the bottom
   equivalent), which also covers the plain-browser PWA via `env()`.
-- Keep `StatusBar.setStyle({ style: dark ? Style.Dark : Style.Light })` for icon contrast, and keep
-  `setBackgroundColor` as a best-effort call for pre-Android-15 devices (harmless no-op on 15+).
+- Set the icon/handle contrast for **both** bars with the bundled `SystemBars.setStyle`
+  (`dark ? Dark : Light`), which applies to the status bar and the gesture navigation bar; keep
+  `StatusBar.setBackgroundColor` as a best-effort call for pre-Android-15 devices (harmless no-op on
+  15+).
 - Set `overlaysWebView: true` in `capacitor.config.ts` so behavior is consistent with edge-to-edge,
   and set the Android theme status/navigation bar colors transparent.
 Alternative: opt-out attribute (rejected: deprecated and removed in Android 16).
 
-**5. Version bump = patch** (correcting shipped appearance is a `fix`-class change), per AGENTS.md.
+**5. The navigation-bar strip rides on the footer.**
+The bottom inset cannot pad the shell container the way the top inset does: the container background
+(`bg-bone-300 dark:bg-ink`) differs from the footer (`bg-light`/`dark:bg-dark`), so a bottom-padded
+container leaves a strip of the wrong color behind the gesture bar. Instead the bottom inset is applied
+*inside* the tab bar (`padding-bottom: calc(1.5rem + var(--safe-area-inset-bottom …))`), so the
+footer's own background fills the gesture-navigation-bar area. The top inset stays on the shell
+container (the header has no background of its own, so it already matches the page background). The
+desktop layout keeps the plain container inset because it has no footer. The floating player's bottom
+offset gains the same inset so it keeps clearing the (now taller) footer.
+
+**6. Version bump = patch** (correcting shipped appearance is a `fix`-class change), per AGENTS.md.
 
 ## Risks / Trade-offs
 
 - **Content under system bars** if safe-area insets are mishandled → test both themes on an Android
   15/16 device and an older device; verify header text is not clipped and the tab bar clears the nav bar.
+- **Navigation-bar strip color** → if the bottom inset pads the shell container instead of the footer,
+  the strip behind the gesture bar shows the page background. Keep the bottom inset on the tab bar and
+  verify the strip matches the footer in both themes.
+- **Floating player overlap** → the taller footer (base padding + gesture inset) can sit under the
+  floating player; give the player the same bottom inset so it keeps clearing the footer.
 - **`@capacitor/assets` overwrites hand-edited resources** → regenerate into a clean tree and review
   the diff before committing; keep the theme edits in `styles.xml` (not generated).
 - **Adaptive icon safe zone** — a mark that is too large gets clipped → keep it within ~66% of the
@@ -105,8 +122,9 @@ Alternative: opt-out attribute (rejected: deprecated and removed in Android 16).
 1. Create `resources/` sources from `public/icon.svg` and add `@capacitor/assets` + `android:assets`.
 2. Regenerate the icon and splash resources; fix `ic_launcher_background` to `#22201f`.
 3. Update the launch theme (`windowSplashScreen*`, `postSplashScreenTheme`) and `capacitor.config.ts`.
-4. Adopt edge-to-edge: `viewport-fit=cover`, safe-area padding, status/nav bar transparent, keep
-   `setStyle` + best-effort `setBackgroundColor`.
+4. Adopt edge-to-edge: `viewport-fit=cover`, top inset on the shell, bottom inset inside the tab bar
+   (so the gesture strip matches the footer), status/nav bar transparent, `SystemBars.setStyle` for
+   both bars' contrast plus best-effort `setBackgroundColor`.
 5. Bump the version, `npm run android`, and verify on device (both themes, both orientations).
 6. Rollback: revert the git change and rebuild; no data or API migration involved.
 

@@ -35,25 +35,31 @@ background and without the default template mark.
 - **THEN** the splash shows the brand mark centered on the app background without stretching or cropping artifacts
 
 ### Requirement: System bars follow the active theme
-The status bar SHALL reflect the effective theme so its background and icon contrast match the
-navigation bar, and this MUST hold on Android 15+ where edge-to-edge is enforced and the legacy
-status-bar background-color API has no effect.
+Each system bar area SHALL render the same background as the app chrome adjacent to it, keeping the
+app continuous edge to edge: the status-bar area matches the top background and the navigation-bar
+area matches the footer/tab bar. Icon and gesture-handle contrast MUST stay legible in both themes,
+including on Android 15+ where edge-to-edge is enforced and the legacy bar background-color APIs have
+no effect.
 
 #### Scenario: Dark theme active
 - **WHEN** the effective theme is dark
-- **THEN** the status bar area matches the dark app background with light icons
+- **THEN** the status-bar area matches the dark top background and the navigation-bar area matches the dark footer, both with light icons
 
 #### Scenario: Light theme active
 - **WHEN** the effective theme is light
-- **THEN** the status bar area matches the light app background with dark icons
+- **THEN** the status-bar area matches the light top background and the navigation-bar area matches the light footer, both with dark icons
+
+#### Scenario: Navigation bar matches the footer
+- **WHEN** the app shows its mobile layout with the footer/tab bar
+- **THEN** the gesture navigation-bar area renders the footer background color rather than the page background
 
 #### Scenario: Theme changes while running
 - **WHEN** the user switches theme or the system preference changes
-- **THEN** the status bar background and icon appearance update to match without a restart
+- **THEN** both bar areas and their icon appearance update to match without a restart
 
 #### Scenario: Android 15+ edge-to-edge
 - **WHEN** the app runs on a device where edge-to-edge is enforced
-- **THEN** the status bar area still matches the app background and its icons stay legible over both themes
+- **THEN** both bar areas still match their adjacent chrome and their icons stay legible over both themes
 
 ### Requirement: Native brand assets are reproducible
 The native icon and splash assets SHALL be regenerable from a single source brand asset through a
