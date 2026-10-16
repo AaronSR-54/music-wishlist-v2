@@ -9,6 +9,7 @@ import jwt from 'jsonwebtoken';
 const PROJECT_ID = process.env.FIREBASE_PROJECT_ID;
 const FIREBASE_API_KEY = process.env.FIREBASE_API_KEY;
 const FIRESTORE_BASE = `https://firestore.googleapis.com/v1/projects/${PROJECT_ID}/databases/(default)/documents`;
+const FCM_SEND_URL = `https://fcm.googleapis.com/v1/projects/${PROJECT_ID}/messages:send`;
 
 const VAPID_SUBJECT = process.env.VAPID_SUBJECT || 'mailto:hello@musicwishlist.app';
 
@@ -76,6 +77,50 @@ const RECORD_TYPE_MAP = {
   ep: 'EP',
   single: 'Canción',
 };
+
+const RELEASE_EMOJI = { Álbum: '💿', EP: '🎧', Canción: '🎵' };
+
+function toDataStrings(data) {
+  const out = {};
+  for (const [k, v] of Object.entries(data ?? {})) {
+    if (v !== undefined && v !== null) out[k] = String(v);
+  }
+  return out;
+}
+
+async function sendFcm(accessToken, deviceToken, notification, data) {
+  const res = await fetch(FCM_SEND_URL, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${accessToken}`,
+    },
+    body: JSON.stringify({
+      message: {
+        token: deviceToken,
+        notification,
+        data: toDataStrings(data),
+        android: { priority: 'high' },
+      },
+    }),
+  });
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}));
+    const status = body?.error?.status ?? String(res.status);
+    const err = new Error(`FCM send failed: ${status}`);
+    err.statusCode = res.status;
+    err.fcmStatus = status;
+    throw err;
+  }
+}
+
+function isStaleFcmError(err) {
+  return (
+    err?.statusCode === 404 ||
+    err?.fcmStatus === 'UNREGISTERED' ||
+    err?.fcmStatus === 'NOT_FOUND'
+  );
+}
 
 // ── Auth ──────────────────────────────────────────────────────
 
@@ -312,10 +357,13 @@ async function run(uid, idToken, clientId) {
   } else if (f?.subscription) {
     subs = { _legacy: fromFields(f).subscription };
   }
+  const tokens = f?.tokens ? fromFields(f).tokens ?? {} : {};
   const subEntries = Object.entries(subs);
-  if (subEntries.length === 0) {
-    return { notified: 0, results: [], error: 'No push subscription found.' };
+  const tokenEntries = Object.entries(tokens);
+  if (subEntries.length === 0 && tokenEntries.length === 0) {
+    return { notified: 0, results: [], error: 'No push registration found.' };
   }
+  const fcmToken = tokenEntries.length > 0 ? await getServiceAccountToken() : null;
 
   const favDocs = await listWhere('favorite-artists', 'addedByUid', 'EQUAL', uid, idToken);
   if (!favDocs.length) {
@@ -384,6 +432,7 @@ async function run(uid, idToken, clientId) {
     for (const album of albumsToNotify) {
       const releaseType = RECORD_TYPE_MAP[album.record_type?.toLowerCase()] ?? 'Álbum';
       const coverUrl = album.cover_xl ?? album.cover_big ?? album.cover_medium ?? '';
+      const emoji = RELEASE_EMOJI[releaseType] ?? '🎵';
 
       const payload = JSON.stringify({
         title: album.title,
@@ -394,6 +443,7 @@ async function run(uid, idToken, clientId) {
       });
 
       const staleIds = [];
+      const staleTokenIds = [];
       let sentAny = false;
       for (const [id, subData] of subEntries) {
         try {
@@ -407,13 +457,37 @@ async function run(uid, idToken, clientId) {
         }
       }
 
-      // Clean up stale subscriptions
-      if (staleIds.length > 0) {
+      for (const [id, entry] of tokenEntries) {
+        if (!fcmToken) break;
+        try {
+          await sendFcm(
+            fcmToken,
+            entry.token,
+            {
+              title: `${emoji} Nuevo ${releaseType} de ${favorite.name}`,
+              body: album.title,
+            },
+            { type: 'release', albumId: String(album.id) },
+          );
+          sentAny = true;
+        } catch (err) {
+          console.error(`[check-releases] FCM error for ${album.title} (${id}): ${err.fcmStatus ?? err.message}`);
+          if (isStaleFcmError(err)) staleTokenIds.push(id);
+        }
+      }
+
+      // Clean up stale registrations
+      if (staleIds.length > 0 || staleTokenIds.length > 0) {
         didCleanup = true;
         for (const id of staleIds) {
           delete subs[id];
           const idx = subEntries.findIndex(([k]) => k === id);
           if (idx >= 0) subEntries.splice(idx, 1);
+        }
+        for (const id of staleTokenIds) {
+          delete tokens[id];
+          const idx = tokenEntries.findIndex(([k]) => k === id);
+          if (idx >= 0) tokenEntries.splice(idx, 1);
         }
       }
 
@@ -436,11 +510,16 @@ async function run(uid, idToken, clientId) {
   }
 
   if (didCleanup) {
-    const remaining = Object.keys(subs);
-    if (remaining.length === 0) {
+    const remainingSubs = Object.keys(subs);
+    const remainingTokens = Object.keys(tokens);
+    if (remainingSubs.length === 0 && remainingTokens.length === 0) {
       await deleteDoc(`push-subscriptions/${uid}`, idToken);
     } else if (isMapFormat) {
-      await setDoc(`push-subscriptions/${uid}`, { subscriptions: subs, updatedAt: Date.now() }, idToken);
+      await setDoc(
+        `push-subscriptions/${uid}`,
+        { subscriptions: subs, tokens, updatedAt: Date.now() },
+        idToken,
+      );
     }
   }
 
@@ -451,6 +530,9 @@ async function run(uid, idToken, clientId) {
 // ── Handler ───────────────────────────────────────────────────
 
 export default async (req, res) => {
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  if (req.method === 'OPTIONS') return res.status(200).end();
+
   const authHeader = req.headers.authorization;
   if (!authHeader?.startsWith('Bearer ')) {
     return res.status(401).json({ error: 'Unauthorized' });
