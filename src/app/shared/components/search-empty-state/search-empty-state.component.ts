@@ -13,6 +13,30 @@ export type SearchEmptyStateVariant = 'idle' | 'empty';
   standalone: true,
   imports: [CommonModule, EmptyStateComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
+  styles: `
+    :host {
+      display: flex;
+      flex-direction: column;
+      flex: 1;
+      min-height: 0;
+    }
+    .scroll-fade {
+      flex: 1;
+      overflow-y: auto;
+      scrollbar-width: none;
+      padding: 4px 0 2rem;
+      mask-image: linear-gradient(
+        to bottom,
+        transparent 0%,
+        black 16px,
+        black 95%,
+        transparent 100%
+      );
+    }
+    .scroll-fade::-webkit-scrollbar {
+      display: none;
+    }
+  `,
   template: `
     <div class="scroll-fade">
       @switch (variant()) {
