@@ -1,12 +1,10 @@
 <es-ES>
-Novedades de la versión 0.22.2:
-• Icono de la app y pantalla de inicio con la imagen de marca de Music Wishlist.
-• La barra de estado se adapta al tema claro/oscuro.
+Novedades de la versión 0.22.3:
+• La barra de navegación por gestos ahora usa el mismo color que el pie de la app.
 • Correcciones y ajustes internos.
 </es-ES>
 <en-US>
-What's new in version 0.22.2:
-• App icon and splash screen now use the Music Wishlist brand artwork.
-• The status bar follows the light/dark theme.
+What's new in version 0.22.3:
+• The gesture navigation bar now matches the app footer's color.
 • Internal fixes and tweaks.
 </en-US>
