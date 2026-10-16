@@ -28,10 +28,10 @@
 
 ## 6. Navigation bar matches the footer
 
-- [ ] 6.1 Keep the top safe-area inset on the shell container but move the bottom inset inside the tab bar (`padding-bottom: calc(1.5rem + var(--safe-area-inset-bottom, env(safe-area-inset-bottom, 0px)))`) so the gesture navigation-bar strip renders the footer background (`bg-light`/`dark:bg-dark`) instead of the page background; verify the nav bar area matches the footer in both themes.
-- [ ] 6.2 Give the floating player the same bottom inset so it keeps clearing the (now taller) footer; verify the player does not overlap the tab bar.
-- [ ] 6.3 Set the icon/gesture-handle contrast of both bars with `SystemBars.setStyle({ style: dark ? SystemBarsStyle.Dark : SystemBarsStyle.Light })` in `native-shell.service.ts` (keeping the best-effort `StatusBar.setBackgroundColor`); verify the status-bar icons and navigation handle stay legible when the theme changes at runtime.
-- [ ] 6.4 Re-verify on device (light + dark, runtime theme change): the gesture navigation-bar area matches the footer, the header area still matches the top background, and no default/white strip remains.
+- [x] 6.1 Keep the top safe-area inset on the shell container but move the bottom inset inside the tab bar (`padding-bottom: calc(1.5rem + var(--safe-area-inset-bottom, env(safe-area-inset-bottom, 0px)))`) so the gesture navigation-bar strip renders the footer background (`bg-light`/`dark:bg-dark`) instead of the page background; verify the nav bar area matches the footer in both themes.
+- [x] 6.2 Give the floating player the same bottom inset so it keeps clearing the (now taller) footer; verify the player does not overlap the tab bar.
+- [x] 6.3 Set the icon/gesture-handle contrast of both bars with `SystemBars.setStyle({ style: dark ? SystemBarsStyle.Dark : SystemBarsStyle.Light })` in `native-shell.service.ts` (keeping the best-effort `StatusBar.setBackgroundColor`); verify the status-bar icons and navigation handle stay legible when the theme changes at runtime.
+- [x] 6.4 Re-verify on device (light + dark, runtime theme change): the gesture navigation-bar area matches the footer, the header area still matches the top background, and no default/white strip remains.
 
 ## Workflow follow-up
 
