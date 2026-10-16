@@ -7,7 +7,8 @@ import {
 import { provideAnimations } from '@angular/platform-browser/animations';
 import { provideRouter } from '@angular/router';
 import { OverlayModule } from '@angular/cdk/overlay';
-import { provideHttpClient } from '@angular/common/http';
+import { provideHttpClient, withInterceptors } from '@angular/common/http';
+import { apiBaseUrlInterceptor } from './core/api/api-base-url.interceptor';
 import { initializeApp, provideFirebaseApp } from '@angular/fire/app';
 import { provideAuth, getAuth } from '@angular/fire/auth';
 import { getFirestore, provideFirestore } from '@angular/fire/firestore';
@@ -21,7 +22,7 @@ export const appConfig: ApplicationConfig = {
     provideAnimations(),
     importProvidersFrom(OverlayModule),
     provideRouter(routes),
-    provideHttpClient(),
+    provideHttpClient(withInterceptors([apiBaseUrlInterceptor])),
     provideFirebaseApp(() => initializeApp(environment.firebase)),
     provideAuth(() => getAuth()),
     provideFirestore(() => getFirestore()),

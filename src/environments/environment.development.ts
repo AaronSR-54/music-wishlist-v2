@@ -10,4 +10,5 @@ export const environment = {
   },
   vapidPublicKey:
     'BCEJNt4kfSrnECRmDQHAz4KNZTCjVBIcZzYe0GTVnNJm_QTwldTs3JVxGfd0iQQIVJQXfCyb0DfrdiMGU0jxPPc',
+  apiBaseUrl: '',
 };

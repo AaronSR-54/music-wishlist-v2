@@ -46,6 +46,7 @@ const content = `export const environment = {
     appId: '${value('FIREBASE_APP_ID', 'appId')}',
   },
   vapidPublicKey: '${value('VAPID_PUBLIC_KEY', 'vapidPublicKey')}',
+  apiBaseUrl: '${value('API_BASE_URL', 'apiBaseUrl') || 'https://music-wishlist-v2.vercel.app'}',
 };
 `;
 
