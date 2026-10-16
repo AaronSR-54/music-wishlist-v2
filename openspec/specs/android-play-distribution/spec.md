@@ -6,17 +6,6 @@ Packages the hosted web app as an Android App Bundle (Trusted Web Activity) and 
 
 ## Requirements
 
-### Requirement: Web content is served as a verified Trusted Web Activity
-The Android app SHALL be a Trusted Web Activity that loads the production web app and SHALL be verified through Digital Asset Links so system chrome shows no URL bar.
-
-#### Scenario: Asset links verified
-- **WHEN** the installed Android app launches on the production origin
-- **THEN** the served Digital Asset Links file matches the app signing key and no URL bar is displayed
-
-#### Scenario: Asset links unavailable
-- **WHEN** the Digital Asset Links file is missing or the fingerprint does not match
-- **THEN** the app degrades to a Custom Tab that shows the URL bar, and this fallback is documented
-
 ### Requirement: Release build produces a signed AAB with mapping
 A single documented command SHALL produce a signed Android App Bundle and the R8 `mapping.txt` at known output paths.
 

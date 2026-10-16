@@ -33,7 +33,7 @@ The web app manifest SHALL be the single source of truth for `theme_color` and `
 - **THEN** `id`, `scope` and `start_url` are present and mutually consistent
 
 ### Requirement: Launch colors avoid a mismatched splash
-The install/TWA launch background SHALL use the app background color so there is no flash of an unrelated color between launch and first paint.
+The installed PWA's launch background SHALL use the app background color so there is no flash of an unrelated color between launch and first paint.
 
 #### Scenario: Cold launch in dark mode
 - **WHEN** the installed app is cold-launched with the dark theme active

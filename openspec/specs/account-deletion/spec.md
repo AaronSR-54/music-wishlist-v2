@@ -7,7 +7,7 @@ Lets a signed-in user permanently delete their account and all data associated w
 ## Requirements
 
 ### Requirement: In-app account deletion
-The app SHALL let a signed-in user delete their account from the Profile section, after an explicit confirmation step, and SHALL sign the user out and return them to the login screen once deletion succeeds.
+The app SHALL let a signed-in user delete their account from the Profile section, after an explicit confirmation step, and SHALL sign the user out and return them to the login screen once deletion succeeds. Before deleting, the app SHALL reauthenticate the user with the sign-in flow available on the current platform (native Google sign-in on the Android app, web popup in the browser).
 
 #### Scenario: Confirmed deletion
 - **WHEN** a signed-in user confirms the delete-account action
@@ -21,8 +21,12 @@ The app SHALL let a signed-in user delete their account from the Profile section
 - **WHEN** the user triggers delete-account
 - **THEN** the app asks for an explicit confirmation before deleting anything
 
+#### Scenario: Reauthentication on the native app
+- **WHEN** a signed-in user confirms delete-account in the Android app
+- **THEN** the app reauthenticates through the native sign-in flow before deleting the account
+
 ### Requirement: Deletion removes every user-owned data set
-Deleting the account SHALL remove the user's wishlist entries, favorite artists, wishlist share records where the user is owner or recipient, wishlist invites they created, and their push notification subscription.
+Deleting the account SHALL remove the user's wishlist entries, favorite artists, wishlist share records where the user is owner or recipient, wishlist invites they created, and their push notification registrations (web subscriptions and native device tokens).
 
 #### Scenario: Wishlist and favorites are removed
 - **WHEN** the account is deleted
@@ -34,7 +38,7 @@ Deleting the account SHALL remove the user's wishlist entries, favorite artists,
 
 #### Scenario: Push subscription is removed
 - **WHEN** the account is deleted
-- **THEN** the user's server-side push subscription no longer exists and the browser push subscription is released
+- **THEN** the user's server-side push registrations no longer exist and the local web subscription or native token is released
 
 ### Requirement: Failed deletion is reported without raising a half-deleted account
 If account deletion cannot be completed, the app SHALL show an error and keep the user signed in, and SHALL NOT delete the authentication account while leaving associated data behind.
