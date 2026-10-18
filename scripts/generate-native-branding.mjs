@@ -31,8 +31,13 @@ const MARK_BOX = '2.1 3 12.8 12.9';
 
 const ICON_SIZE = 1024;
 const SPLASH_SIZE = 2732;
-const ICON_MARK = 0.62; // mark as a fraction of the legacy launcher icon canvas
-const FOREGROUND_MARK = 0.92; // stays inside the adaptive safe zone after the 16.7% inset
+// Mark scale as a fraction of the icon canvas. @capacitor/assets wraps the
+// adaptive foreground in a 16.7% inset, which shrinks the image to the 72dp safe
+// zone but keeps the mark's proportion inside it, so using the same value for the
+// legacy and foreground sources keeps the adaptive, round and legacy icons at the
+// same apparent scale with a comfortable margin under any launcher mask.
+const ICON_MARK = 0.62;
+const FOREGROUND_MARK = ICON_MARK;
 const SPLASH_MARK = 0.18; // mark as a fraction of the splash canvas
 
 function renderMark(size) {
