@@ -37,6 +37,11 @@ npm run android:assets
   (mark centred on `#22201f`) from `public/icon.svg`.
 - Regenerates every `android/app/src/main/res/mipmap-*` launcher variant and `drawable*/splash.png`
   density, so the icon and splash only ever need editing through `public/icon.svg`.
+- The launcher mark's scale lives in `scripts/generate-native-branding.mjs`: `ICON_MARK` is the mark's
+  fraction of the icon canvas, and `FOREGROUND_MARK` reuses it so the adaptive, round and legacy
+  variants share the same apparent proportion. `@capacitor/assets` wraps the adaptive foreground in a
+  `16.7%` inset, which shrinks it to the 72dp safe zone but keeps the mark's proportion inside it, so
+  lowering `ICON_MARK` is the way to give the mark more breathing room under the launcher mask.
 
 Run it after changing the brand mark, before `npm run android`.
 

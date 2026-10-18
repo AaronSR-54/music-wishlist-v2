@@ -112,7 +112,7 @@ Angular signals throughout (no NgRx):
 | `android/` | Capacitor Android project (Gradle, `app/build.gradle`, `google-services.json`) |
 | `capacitor.config.ts` | Capacitor app id, name, `webDir`, splash/status-bar plugins |
 | `resources/` | Android native branding source images consumed by `@capacitor/assets` (icon + splash) |
-| `scripts/generate-native-branding.mjs` | `npm run android:assets`: render `public/icon.svg` → `resources/` + regenerate Android icon/splash |
+| `scripts/generate-native-branding.mjs` | `npm run android:assets`: render `public/icon.svg` → `resources/` + regenerate Android icon/splash; `ICON_MARK`/`FOREGROUND_MARK` set the launcher mark scale shared by all icon variants |
 | `scripts/sync-android-version.js` | Derive Android version into `android/app/build.gradle` |
 | `scripts/android-release.js` | `npm run android`: version sync + web build + `cap sync` + signed AAB + mapping |
 | `store/README.md` | Google Play release flow and prerequisites |
