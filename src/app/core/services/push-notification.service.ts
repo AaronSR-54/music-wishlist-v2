@@ -4,10 +4,17 @@ import { firstValueFrom } from 'rxjs';
 import { Capacitor } from '@capacitor/core';
 import {
   NATIVE_PUSH,
+  NativePushChannel,
+  NativePushPermissionState,
   NativePushRegistration,
 } from '../native/native-push';
+import { NATIVE_APP } from '../native/native-app';
 import { AuthService } from '../auth/auth.service';
 import { environment } from '../../../environments/environment';
+
+const NATIVE_ASKED_KEY = 'mw-native-notif-asked-v1';
+
+export const RELEASE_CHANNEL_ID = 'releases';
 
 export type PushUnsupportedReason =
   | 'no-window'
@@ -36,6 +43,7 @@ export class PushNotificationService {
   private http = inject(HttpClient);
   private auth = inject(AuthService);
   private nativePush = inject(NATIVE_PUSH);
+  private nativeApp = inject(NATIVE_APP);
 
   readonly isNative = Capacitor.isNativePlatform();
   readonly unsupportedReason = signal<PushUnsupportedReason>(
@@ -54,6 +62,8 @@ export class PushNotificationService {
   loading = signal(false);
   lastError = signal<string | null>(null);
 
+  private nativeChannelConfigured = false;
+
   constructor() {
     if (!this.isSupported()) return;
     if (this.isNative) this.initNativeListeners();
@@ -65,6 +75,98 @@ export class PushNotificationService {
       const user = this.auth.currentUser();
       if (user && !this.auth.demoMode()) void this.reconcile();
     });
+  }
+
+  /**
+   * Native startup entry point: prepares the Android channel and resolves the
+   * notification permission on its own. The Android system owns the permission,
+   * so the app never exposes its own on/off switch. The request is made at most
+   * once per install; afterwards only the system settings can change it.
+   */
+  async initializeNative(channel: NativePushChannel): Promise<void> {
+    if (!this.isNative) return;
+    await this.ensureNativeChannel(channel);
+
+    let permission = await this.checkNativePermission();
+    this.applyNativePermission(permission);
+
+    if (permission === 'granted') {
+      await this.registerNativeDevice();
+      return;
+    }
+    if (permission === 'denied') return;
+    if (this.hasAskedNativePermission()) return;
+
+    // Record the attempt before the dialog so a dismissal is not retried.
+    this.markNativePermissionAsked();
+    permission = await this.requestNativePermission();
+    if (permission === 'granted') await this.registerNativeDevice();
+  }
+
+  private async ensureNativeChannel(channel: NativePushChannel): Promise<void> {
+    if (this.nativeChannelConfigured) return;
+    this.nativeChannelConfigured = true;
+    try {
+      await this.nativePush.createChannel(channel);
+    } catch {
+      // Channels exist from Android 8; older versions have nothing to create.
+    }
+  }
+
+  private async checkNativePermission(): Promise<NativePushPermissionState> {
+    try {
+      const permission = await this.nativePush.checkPermissions();
+      return permission.receive;
+    } catch {
+      return 'prompt';
+    }
+  }
+
+  private async requestNativePermission(): Promise<NativePushPermissionState> {
+    try {
+      const permission = await this.nativePush.requestPermissions();
+      this.applyNativePermission(permission.receive);
+      return permission.receive;
+    } catch (err) {
+      this.lastError.set(errorMessage(err));
+      this.applyNativePermission('denied');
+      return 'denied';
+    }
+  }
+
+  private applyNativePermission(permission: NativePushPermissionState): void {
+    this.permissionState.set(
+      permission === 'granted'
+        ? 'granted'
+        : permission === 'denied'
+          ? 'denied'
+          : 'default',
+    );
+  }
+
+  private hasAskedNativePermission(): boolean {
+    try {
+      return localStorage.getItem(NATIVE_ASKED_KEY) === '1';
+    } catch {
+      return false;
+    }
+  }
+
+  private markNativePermissionAsked(): void {
+    try {
+      localStorage.setItem(NATIVE_ASKED_KEY, '1');
+    } catch {
+      // Storage unavailable: the prompt may repeat, nothing else breaks.
+    }
+  }
+
+  private async registerNativeDevice(): Promise<void> {
+    try {
+      await this.nativePush.register();
+    } catch (err) {
+      this.lastError.set(errorMessage(err));
+      console.error('[PushNotification] native register error:', err);
+    }
   }
 
   private async reconcile(): Promise<void> {
@@ -241,6 +343,38 @@ export class PushNotificationService {
     void this.nativePush.addListener('registrationError', (err) => {
       this.lastError.set(errorMessage(err));
     });
+    // Android can grant or revoke the permission while the app is away; the
+    // same listener is the only recovery path after a denial.
+    void this.nativeApp
+      .addListener('resume', () => {
+        void this.handleNativeResume();
+      })
+      .catch(() => {
+        // App plugin unavailable; the permission is still read at startup.
+      });
+  }
+
+  private async handleNativeResume(): Promise<void> {
+    const previous = this.permissionState();
+    const permission = await this.checkNativePermission();
+    this.applyNativePermission(permission);
+
+    if (permission === 'granted') {
+      await this.registerNativeDevice();
+      return;
+    }
+
+    this.isSubscribed.set(false);
+    if (previous !== 'granted') return;
+
+    // Revoked from the system settings: drop the device registration so the
+    // server stops sending to a device that can no longer display it.
+    try {
+      await this.postUnsubscribeNative();
+    } catch (err) {
+      this.lastError.set(errorMessage(err));
+      console.error('[PushNotification] native unsubscribe error:', err);
+    }
   }
 
   private async subscribeNative(): Promise<'granted' | 'denied' | 'error'> {

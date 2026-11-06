@@ -6,6 +6,11 @@ import { PushNotifications } from '@capacitor/push-notifications';
 import { SplashScreen } from '@capacitor/splash-screen';
 import { StatusBar } from '@capacitor/status-bar';
 import { ThemeService } from '../theme/theme.service';
+import { LanguageService } from '../i18n/language.service';
+import {
+  PushNotificationService,
+  RELEASE_CHANNEL_ID,
+} from '../services/push-notification.service';
 
 const BRAND_BACKGROUND = '#22201f';
 
@@ -14,6 +19,8 @@ export class NativeShellService {
   private router = inject(Router);
   private zone = inject(NgZone);
   private theme = inject(ThemeService);
+  private language = inject(LanguageService);
+  private push = inject(PushNotificationService);
 
   constructor() {
     if (!Capacitor.isNativePlatform()) return;
@@ -27,7 +34,25 @@ export class NativeShellService {
       void this.applySystemBars(dark);
     });
 
-    void SplashScreen.hide();
+    void this.startNotifications();
+  }
+
+  /**
+   * The Android system owns the notification permission: ask once on the first
+   * launch after the splash and register the device as soon as it is granted.
+   */
+  private async startNotifications(): Promise<void> {
+    await SplashScreen.hide();
+    const t = this.language.t();
+    await this.push.initializeNative({
+      id: RELEASE_CHANNEL_ID,
+      name: t.notificationChannelName,
+      description: t.notificationChannelDescription,
+      importance: 4,
+      sound: 'default',
+      vibration: true,
+      visibility: 1,
+    });
   }
 
   private initBackButton(): void {

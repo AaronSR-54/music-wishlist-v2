@@ -7,6 +7,7 @@ import {
   detectUnsupportedReason,
 } from './push-notification.service';
 import { NATIVE_PUSH } from '../native/native-push';
+import { NATIVE_APP } from '../native/native-app';
 import { AuthService } from '../auth/auth.service';
 
 describe('detectUnsupportedReason', () => {
@@ -52,8 +53,12 @@ describe('PushNotificationService', () => {
     requestPermissions: jasmine.Spy;
     checkPermissions: jasmine.Spy;
     register: jasmine.Spy;
+    unregister: jasmine.Spy;
+    createChannel: jasmine.Spy;
     addListener: jasmine.Spy;
   };
+  let nativeApp: { addListener: jasmine.Spy };
+  let resumeCallback: (() => void) | null;
 
   const fakeSub = {
     endpoint: 'https://example.com/push',
@@ -75,10 +80,22 @@ describe('PushNotificationService', () => {
         .createSpy('checkPermissions')
         .and.resolveTo({ receive: 'granted' }),
       register: jasmine.createSpy('register').and.resolveTo(),
+      unregister: jasmine.createSpy('unregister').and.resolveTo(),
+      createChannel: jasmine.createSpy('createChannel').and.resolveTo(),
       addListener: jasmine
         .createSpy('addListener')
         .and.resolveTo({ remove: async () => {} }),
     };
+    resumeCallback = null;
+    nativeApp = {
+      addListener: jasmine
+        .createSpy('nativeApp.addListener')
+        .and.callFake((_event: string, callback: () => void) => {
+          resumeCallback = callback;
+          return Promise.resolve({ remove: async () => {} });
+        }),
+    };
+    localStorage.removeItem('mw-native-notif-asked-v1');
 
     Object.defineProperty(navigator, 'serviceWorker', {
       configurable: true,
@@ -100,6 +117,7 @@ describe('PushNotificationService', () => {
         { provide: HttpClient, useValue: { post: httpPost } },
         { provide: AuthService, useValue: auth },
         { provide: NATIVE_PUSH, useValue: nativePush },
+        { provide: NATIVE_APP, useValue: nativeApp },
       ],
     });
   });
@@ -172,5 +190,90 @@ describe('PushNotificationService', () => {
       .allArgs()
       .find((args) => (args[1] as { action: string }).action === 'subscribe');
     expect(subscribeCall).toBeTruthy();
+  });
+
+  describe('native permission lifecycle', () => {
+    const channel = { id: 'releases', name: 'Nuevos lanzamientos' };
+
+    beforeEach(() => {
+      spyOn(Capacitor, 'isNativePlatform').and.returnValue(true);
+    });
+
+    it('creates the channel and registers when the permission is already granted', async () => {
+      const svc = TestBed.inject(PushNotificationService);
+
+      await svc.initializeNative(channel);
+
+      expect(nativePush.createChannel).toHaveBeenCalledWith(channel);
+      expect(nativePush.requestPermissions).not.toHaveBeenCalled();
+      expect(nativePush.register).toHaveBeenCalled();
+      expect(svc.permissionState()).toBe('granted');
+    });
+
+    it('requests the permission once per install and registers on grant', async () => {
+      nativePush.checkPermissions.and.resolveTo({ receive: 'prompt' });
+      nativePush.requestPermissions.and.resolveTo({ receive: 'granted' });
+      const svc = TestBed.inject(PushNotificationService);
+
+      await svc.initializeNative(channel);
+      nativePush.checkPermissions.and.resolveTo({ receive: 'granted' });
+      await svc.initializeNative(channel);
+
+      expect(nativePush.requestPermissions).toHaveBeenCalledTimes(1);
+      expect(nativePush.register).toHaveBeenCalled();
+      expect(svc.permissionState()).toBe('granted');
+      expect(localStorage.getItem('mw-native-notif-asked-v1')).toBe('1');
+    });
+
+    it('does not prompt again after a denial', async () => {
+      nativePush.checkPermissions.and.resolveTo({ receive: 'prompt' });
+      nativePush.requestPermissions.and.resolveTo({ receive: 'denied' });
+      const svc = TestBed.inject(PushNotificationService);
+
+      await svc.initializeNative(channel);
+      nativePush.checkPermissions.and.resolveTo({ receive: 'denied' });
+      await svc.initializeNative(channel);
+
+      expect(nativePush.requestPermissions).toHaveBeenCalledTimes(1);
+      expect(nativePush.register).not.toHaveBeenCalled();
+      expect(svc.permissionState()).toBe('denied');
+    });
+
+    it('registers on resume when the permission was granted in Android settings', async () => {
+      nativePush.checkPermissions.and.resolveTo({ receive: 'denied' });
+      const svc = TestBed.inject(PushNotificationService);
+      await svc.initializeNative(channel);
+      expect(nativePush.register).not.toHaveBeenCalled();
+
+      nativePush.checkPermissions.and.resolveTo({ receive: 'granted' });
+      resumeCallback?.();
+      await new Promise((resolve) => setTimeout(resolve));
+
+      expect(nativePush.register).toHaveBeenCalled();
+      expect(svc.permissionState()).toBe('granted');
+    });
+
+    it('drops the server registration when the permission is revoked', async () => {
+      httpPost.and.returnValue(of({ ok: true }));
+      const svc = TestBed.inject(PushNotificationService);
+      await svc.initializeNative(channel);
+      expect(svc.permissionState()).toBe('granted');
+
+      nativePush.checkPermissions.and.resolveTo({ receive: 'denied' });
+      resumeCallback?.();
+      await new Promise((resolve) => setTimeout(resolve));
+
+      expect(svc.permissionState()).toBe('denied');
+      expect(svc.isSubscribed()).toBeFalse();
+      const unsubscribeCall = httpPost.calls
+        .allArgs()
+        .find(
+          (args) =>
+            (args[1] as { action: string; platform?: string }).action ===
+              'unsubscribe' &&
+            (args[1] as { platform?: string }).platform === 'native',
+        );
+      expect(unsubscribeCall).toBeTruthy();
+    });
   });
 });

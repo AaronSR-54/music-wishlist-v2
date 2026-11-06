@@ -1,10 +1,21 @@
 import { TestBed } from '@angular/core/testing';
+import { provideHttpClient } from '@angular/common/http';
 import { App } from './app';
+import { AuthService } from './core/auth/auth.service';
 
 describe('App', () => {
   beforeEach(async () => {
     await TestBed.configureTestingModule({
       imports: [App],
+      providers: [
+        provideHttpClient(),
+        // The root shell now wires push notifications at startup; the service
+        // only needs an auth facade to build its signals in this unit test.
+        {
+          provide: AuthService,
+          useValue: { currentUser: () => null, demoMode: () => false },
+        },
+      ],
     }).compileComponents();
   });
 

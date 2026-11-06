@@ -10,9 +10,11 @@ import { CommonModule } from '@angular/common';
 import { ProfileSectionComponent } from '../../../shared/components/profile-section/profile-section.component';
 import { SegmentedTabsComponent } from '../../../shared/components/segmented-tabs/segmented-tabs.component';
 import { ModalComponent } from '../../../shared/components/modal/modal.component';
+import { IconComponent } from '../../../shared/icons/icon.component';
 import { ThemeService } from '../../../core/theme/theme.service';
 import { LanguageService } from '../../../core/i18n/language.service';
 import { PushNotificationService } from '../../../core/services/push-notification.service';
+import { NotificationSettings } from '../../../core/native/notification-settings';
 import { ToastService } from '../../../shared/components/toast/toast.component';
 
 type TabType = 'releases' | 'search' | 'wishlist';
@@ -27,6 +29,7 @@ type Language = 'es' | 'en';
     ProfileSectionComponent,
     SegmentedTabsComponent,
     ModalComponent,
+    IconComponent,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
@@ -102,7 +105,15 @@ type Language = 'es' | 'en';
             {{ t().notifications }}:
           </span>
 
-          @if (!pushSvc.isSupported()) {
+          @if (pushSvc.isNative) {
+            <button
+              class="w-full md:w-auto inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg bg-bone dark:bg-ink-200 dark:text-bone border-2 border-bone-800 dark:border-ink-300 hover:bg-bone-700 dark:hover:bg-ink-300 font-bold uppercase transition-all duration-300"
+              (click)="openAndroidNotificationSettings()"
+            >
+              <app-icon name="external-link" class="w-4 h-4" />
+              {{ t().openAndroidSettings }}
+            </button>
+          } @else if (!pushSvc.isSupported()) {
             <span class="text-sm text-ink-600 dark:text-bone-600 italic">
               {{ t().notificationsNotSupported }}
             </span>
@@ -272,6 +283,15 @@ export class ProfileSettingsComponent {
   onLangChange(value: string) {
     this.setLanguage(value as Language);
     this.closeLangModal();
+  }
+
+  async openAndroidNotificationSettings() {
+    try {
+      await NotificationSettings.openAppNotificationSettings();
+    } catch (err) {
+      console.error('[Notifications] open settings error:', err);
+      this.toast.error(this.t().toastOpenSettingsError);
+    }
   }
 
   async toggleNotifications() {
