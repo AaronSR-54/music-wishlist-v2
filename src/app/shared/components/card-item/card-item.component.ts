@@ -90,7 +90,7 @@ import { ButtonComponent } from '../button/button.component';
   `,
   template: `
     <div
-      class="card relative flex flex-col p-2 rounded-lg bg-bone-200 dark:bg-ink-600 gap-1 w-full cursor-pointer"
+      class="card relative flex flex-col p-2 rounded-lg bg-bone-200 dark:bg-dark/80 gap-1 w-full cursor-pointer"
       [class.compact]="compact()"
       [attr.data-type]="releaseItem().type"
       (click)="onCardClick()"

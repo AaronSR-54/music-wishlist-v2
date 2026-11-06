@@ -131,7 +131,7 @@ type WishlistTab = 'pending' | 'downloaded';
         <div class="ready-list-content--ready">
         @if (activeTab() === 'pending') {
             <section
-              class="ready-list-card mb-2 flex flex-col p-2 rounded-lg bg-bone-200 dark:bg-ink-600 gap-1 w-full"
+              class="ready-list-card mb-2 flex flex-col p-2 rounded-lg bg-bone-200 dark:bg-dark/80 gap-1 w-full"
               [class.ready-list-card--open]="ownPendingCount() > 0 && myPendingExpanded()"
             >
               <button
@@ -212,7 +212,7 @@ type WishlistTab = 'pending' | 'downloaded';
 
             @if (shareService.sharesReceivedLoaded()) {
               <section
-                class="ready-list-card mb-2 flex flex-col p-2 rounded-lg bg-bone-200 dark:bg-ink-600 gap-1 w-full"
+                class="ready-list-card mb-2 flex flex-col p-2 rounded-lg bg-bone-200 dark:bg-dark/80 gap-1 w-full"
                 [class.ready-list-card--open]="sharedPendingCount() > 0 && sharedPendingOpen()"
               >
                 <button
@@ -299,7 +299,7 @@ type WishlistTab = 'pending' | 'downloaded';
             }
         } @else {
           <section
-            class="ready-list-card mb-2 flex flex-col p-2 rounded-lg bg-bone-200 dark:bg-ink-600 gap-1 w-full"
+            class="ready-list-card mb-2 flex flex-col p-2 rounded-lg bg-bone-200 dark:bg-dark/80 gap-1 w-full"
             [class.ready-list-card--open]="ownDownloadedCount() > 0 && myReadyExpanded()"
           >
             <button
@@ -383,7 +383,7 @@ type WishlistTab = 'pending' | 'downloaded';
 
           @if (shareService.sharesReceivedLoaded()) {
             <section
-              class="ready-list-card mb-2 flex flex-col p-2 rounded-lg bg-bone-200 dark:bg-ink-600 gap-1 w-full"
+              class="ready-list-card mb-2 flex flex-col p-2 rounded-lg bg-bone-200 dark:bg-dark/80 gap-1 w-full"
               [class.ready-list-card--open]="sharedDownloadedCount() > 0 && sharedReadyOpen()"
             >
               <button

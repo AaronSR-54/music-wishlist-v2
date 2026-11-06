@@ -31,7 +31,7 @@ import { IconComponent } from '../../icons/icon.component';
           [placeholder]="placeholder()"
           [ngModel]="query()"
           (ngModelChange)="onQuery($event)"
-          class="min-w-0 flex-1 bg-transparent border-none outline-none text-ink dark:text-bone focus:text-bone dark:focus:text-ink font-display text-base md:text-lg font-normal placeholder:text-bone-800 dark:placeholder:text-ink-800 focus:placeholder:text-bone-600 dark:focus:placeholder:text-ink-600 placeholder:italic"
+          class="min-w-0 flex-1 bg-transparent border-none outline-none text-ink dark:text-bone focus:text-bone dark:focus:text-ink font-display text-base md:text-lg font-normal placeholder:text-bone-800 dark:placeholder:text-bone-600 focus:placeholder:text-bone-600 dark:focus:placeholder:text-ink-600 placeholder:italic"
           autocomplete="off"
           autocorrect="off"
           spellcheck="false"
