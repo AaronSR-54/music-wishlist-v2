@@ -546,7 +546,10 @@ export class ReleasesComponent {
     const url = `https://deezer.com/album/${menu.item.id}`;
     try {
       await navigator.clipboard.writeText(url);
-      this.toast.success(this.languageService.t().toastLinkCopied);
+      this.toast.success(
+        this.languageService.t().toastLinkCopied,
+        this.languageService.t().toastLinkCopiedPlural,
+      );
     } catch {
       this.toast.error(this.languageService.t().toastError);
     }

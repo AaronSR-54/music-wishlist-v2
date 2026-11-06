@@ -165,11 +165,11 @@ import { ScrollMaskDirective } from '../../shared/directives/scroll-mask.directi
               </div>
 
               <div
-                class="flex flex-wrap items-center gap-x-3 gap-y-1 text-ink dark:text-bone artist-meta"
+                class="flex flex-col items-start gap-0 text-ink dark:text-bone artist-meta leading-none"
               >
                 @if (a.nb_fan !== undefined) {
-                  <span class="flex items-baseline gap-1.5">
-                    <span class="text-base lg:text-[1.375rem] font-bold">{{
+                  <span class="flex items-baseline gap-[2px]">
+                    <span class="text-xs lg:text-sm font-bold">{{
                       formatFans(a.nb_fan)
                     }}</span>
                     <span
@@ -178,17 +178,9 @@ import { ScrollMaskDirective } from '../../shared/directives/scroll-mask.directi
                     >
                   </span>
                 }
-                @if (
-                  a.nb_fan !== undefined && a.nb_album !== undefined
-                ) {
-                  <span
-                    class="w-px h-3.5 lg:h-4 bg-ink-200 dark:bg-ink-600 self-center"
-                    aria-hidden="true"
-                  ></span>
-                }
                 @if (a.nb_album !== undefined) {
-                  <span class="flex items-baseline gap-1.5">
-                    <span class="text-base lg:text-[1.375rem] font-bold">{{
+                  <span class="flex items-baseline gap-[2px]">
+                    <span class="text-xs lg:text-sm font-bold">{{
                       a.nb_album
                     }}</span>
                     <span
@@ -574,7 +566,10 @@ export class ArtistComponent implements OnInit {
         : `https://deezer.com/album/${(menu.item as ReleaseItem).id}`;
     try {
       await navigator.clipboard.writeText(url);
-      this.toast.success(this.languageService.t().toastLinkCopied);
+      this.toast.success(
+        this.languageService.t().toastLinkCopied,
+        this.languageService.t().toastLinkCopiedPlural,
+      );
     } catch {
       this.toast.error(this.languageService.t().toastError);
     }

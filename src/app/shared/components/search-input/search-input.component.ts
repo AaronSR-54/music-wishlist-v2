@@ -16,7 +16,7 @@ import { IconComponent } from '../../icons/icon.component';
   imports: [CommonModule, FormsModule, IconComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <div class="group h-10 p-1 bg-bone dark:bg-ink-200 rounded-pill">
+    <div class="group h-12 p-1 bg-bone dark:bg-ink-200 rounded-pill">
       <div
         class="flex h-full items-center gap-2.5 px-3 rounded-pill transition-colors duration-fast ease-smooth group-focus-within:bg-ink-200 dark:group-focus-within:bg-bone"
       >

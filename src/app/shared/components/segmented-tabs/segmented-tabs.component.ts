@@ -57,7 +57,7 @@ export interface SegmentedTabOption<T extends string = string> {
         <div class="flex flex-row gap-1 rounded-pill overflow-hidden">
           @for (option of options(); track option.value) {
             <button
-              class="flex-1 py-1 font-body uppercase text-ink-200 dark:text-bone-600 rounded-md transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] [&.active]:bg-ink-200 [&.active]:dark:bg-bone [&.active]:text-bone  [&.active]:dark:text-ink [&.active]:font-bold italic [&.active]:not-italic"
+              class="flex-1 py-2 font-body uppercase text-ink-200 dark:text-bone-600 rounded-md transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] [&.active]:bg-ink-200 [&.active]:dark:bg-bone [&.active]:text-bone  [&.active]:dark:text-ink [&.active]:font-bold italic [&.active]:not-italic"
               [class.active]="value() === option.value"
               [style.flex-grow]="activeWide() && value() === option.value ? 2 : 1"
               [class.opacity-40]="option.disabled"

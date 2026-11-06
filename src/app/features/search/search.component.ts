@@ -43,7 +43,7 @@ import {
 import { SearchInputComponent } from '../../shared/components/search-input/search-input.component';
 import { PageHeaderComponent } from '../../shared/components/page-header/page-header.component';
 import { SearchEmptyStateComponent } from '../../shared/components/search-empty-state/search-empty-state.component';
-import { HorizontalScrollComponent } from '../../shared/components/horizontal-scroll/horizontal-scroll.component';
+import { CarouselComponent } from '../../shared/components/carousel/carousel.component';
 import { ContextMenuPanelComponent } from '../../shared/components/context-menu-panel/context-menu-panel.component';
 import { ToastService } from '../../shared/components/toast/toast.component';
 import { ScrollMaskDirective } from '../../shared/directives/scroll-mask.directive';
@@ -65,7 +65,7 @@ register();
     SearchInputComponent,
     PageHeaderComponent,
     SearchEmptyStateComponent,
-    HorizontalScrollComponent,
+    CarouselComponent,
     ContextMenuPanelComponent,
     ScrollMaskDirective,
   ],
@@ -153,26 +153,28 @@ register();
     <div
       class="flex flex-col justify-between h-full overflow-hidden p-0.5 pt-2"
     >
-      <section class="flex flex-col gap-4 flex-1 min-h-0">
-        <app-page-header
-          prefix="02/"
-          [title]="t().search"
-          [mobileOnly]="true"
-          [showBack]="false"
-        />
+      <section class="flex flex-col flex-1 min-h-0">
+        <div class="flex flex-col gap-4">
+          <app-page-header
+            prefix="02/"
+            [title]="t().search"
+            [mobileOnly]="true"
+            [showBack]="false"
+          />
 
-        <app-search-input
-          class="search-input block h-10 shrink-0"
-          [query]="query()"
-          [placeholder]="t().searchPlaceholder"
-          [clearLabel]="t().clear"
-          (queryChange)="onQuery($event)"
-          (clear)="clearQuery()"
-        />
+          <app-search-input
+            class="search-input block h-12 shrink-0"
+            [query]="query()"
+            [placeholder]="t().searchPlaceholder"
+            [clearLabel]="t().clear"
+            (queryChange)="onQuery($event)"
+            (clear)="clearQuery()"
+          />
+        </div>
 
         @if (query()) {
           <app-type-filter
-            class="type-filter -mt-3 w-full"
+            class="type-filter w-full"
             [options]="typeFilterOptions()"
             [selectedTypes]="selectedTypes()"
             (toggle)="toggleType($event)"
@@ -182,7 +184,7 @@ register();
         @switch (state()) {
           @case ('loading') {
             <div
-              class="scroll-fade -mt-1 flex items-center justify-center min-h-[300px] transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)]"
+              class="scroll-fade flex items-center justify-center min-h-[300px] transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)]"
               appScrollMask
             >
               <div
@@ -195,7 +197,7 @@ register();
           }
           @case ('results') {
             <div
-              class="scroll-fade -mt-1 results-enter"
+              class="scroll-fade results-enter"
               appScrollMask
             >
               @for (item of filteredResults(); track item.id; let i = $index) {
@@ -222,7 +224,6 @@ register();
           }
           @case ('empty') {
             <app-search-empty-state
-              class="-mt-1"
               variant="empty"
               [title]="t().noResults"
               [subtitle]="t().tryAnotherSearch"
@@ -230,7 +231,6 @@ register();
           }
           @default {
             <app-search-empty-state
-              class="-mt-1"
               variant="idle"
               [title]="t().startSearching"
               [subtitle]="t().searchSubtitle"
@@ -244,13 +244,19 @@ register();
           class="py-3 pb-6 md:pb-0 border-t border-bone-100 dark:border-ink-100 favorites-section transition-all duration-500 ease-[cubic-bezier(0.4,0,0.2,1)]"
         >
           <h3
-            class="font-display text-xs font-bold text-ink-700 dark:text-bone-700 mb-3 uppercase tracking-wider px-2"
+            class="font-display text-sm font-bold text-ink-700 dark:text-bone-700 mb-3 uppercase tracking-[0.14em] px-2"
           >
             {{ t().favoriteArtists }}
           </h3>
-          <app-horizontal-scroll>
+          <app-carousel
+            [itemSpacing]="8"
+            [leadingPadding]="8"
+            [trailingPadding]="0"
+            [minSmallItemWidth]="40"
+            [maxSmallItemWidth]="56"
+          >
             @for (artist of favoriteArtists(); track artist.id) {
-              <div class="scroll-item">
+              <div class="carousel-item">
                 <app-artist-card
                   class="artist-anim"
                   [artist]="artist"
@@ -259,7 +265,7 @@ register();
                 />
               </div>
             }
-          </app-horizontal-scroll>
+          </app-carousel>
         </div>
       }
     </div>
@@ -448,7 +454,10 @@ export class SearchComponent implements AfterViewInit {
     if (!url) return;
     try {
       await navigator.clipboard.writeText(url);
-      this.toast.success(this.languageService.t().toastLinkCopied);
+      this.toast.success(
+        this.languageService.t().toastLinkCopied,
+        this.languageService.t().toastLinkCopiedPlural,
+      );
     } catch {
       this.toast.error(this.languageService.t().toastError);
     }

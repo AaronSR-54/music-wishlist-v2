@@ -779,7 +779,7 @@ export class WishlistComponent {
 
     try {
       await navigator.clipboard.writeText(url);
-      this.toast.success(this.t().toastLinkCopied);
+      this.toast.success(this.t().toastLinkCopied, this.t().toastLinkCopiedPlural);
     } catch {
       this.toast.error(this.t().toastError);
     }

@@ -161,9 +161,12 @@ export class WishlistService {
         const col = collection(this.firestore, 'wishlist');
         await addDoc(col, entry);
       }
-      this.toastService.success(this.lang.t().toastAddedToWishlist);
+      this.toastService.success(
+        this.lang.t().toastAddedToWishlist,
+        this.lang.t().toastAddedToWishlistPlural,
+      );
     } catch {
-      this.toastService.error(this.lang.t().toastError);
+      this.toastService.error(this.lang.t().toastError, this.lang.t().toastErrorPlural);
     }
   }
 
@@ -198,9 +201,12 @@ export class WishlistService {
         const col = collection(this.firestore, 'wishlist');
         await addDoc(col, entry);
       }
-      this.toastService.success(this.lang.t().toastAddedToWishlist);
+      this.toastService.success(
+        this.lang.t().toastAddedToWishlist,
+        this.lang.t().toastAddedToWishlistPlural,
+      );
     } catch {
-      this.toastService.error(this.lang.t().toastError);
+      this.toastService.error(this.lang.t().toastError, this.lang.t().toastErrorPlural);
     }
   }
 
@@ -218,9 +224,12 @@ export class WishlistService {
       } else {
         await deleteDoc(doc(this.firestore, 'wishlist', id));
       }
-      this.toastService.success(this.lang.t().toastRemovedFromWishlist);
+      this.toastService.success(
+        this.lang.t().toastRemovedFromWishlist,
+        this.lang.t().toastRemovedFromWishlistPlural,
+      );
     } catch {
-      this.toastService.error(this.lang.t().toastError);
+      this.toastService.error(this.lang.t().toastError, this.lang.t().toastErrorPlural);
     }
   }
 
@@ -241,11 +250,14 @@ export class WishlistService {
       } else {
         await updateDoc(doc(this.firestore, 'wishlist', id), { downloaded: true });
       }
-      this.toastService.success(this.lang.t().toastMarkedReady);
+      this.toastService.success(
+        this.lang.t().toastMarkedReady,
+        this.lang.t().toastMarkedReadyPlural,
+      );
 
       this.notifyOwnerIfShared(entry).catch(() => {});
     } catch {
-      this.toastService.error(this.lang.t().toastError);
+      this.toastService.error(this.lang.t().toastError, this.lang.t().toastErrorPlural);
     }
   }
 
@@ -292,9 +304,12 @@ export class WishlistService {
       } else {
         await updateDoc(doc(this.firestore, 'wishlist', id), { downloaded: false });
       }
-      this.toastService.success(this.lang.t().toastMarkedPending);
+      this.toastService.success(
+        this.lang.t().toastMarkedPending,
+        this.lang.t().toastMarkedPendingPlural,
+      );
     } catch {
-      this.toastService.error(this.lang.t().toastError);
+      this.toastService.error(this.lang.t().toastError, this.lang.t().toastErrorPlural);
     }
   }
 
@@ -317,7 +332,7 @@ export class WishlistService {
       }
       this.toastService.success(this.lang.t().wishlistCleared);
     } catch {
-      this.toastService.error(this.lang.t().toastError);
+      this.toastService.error(this.lang.t().toastError, this.lang.t().toastErrorPlural);
     }
   }
 }

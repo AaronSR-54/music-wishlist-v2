@@ -1,42 +1,53 @@
-<button
-  class="cursor-pointer border-none bg-transparent p-0 text-left font-body transition-all duration-300 ease-[cubic-bezier(0.34,1.56,0.64,1)] hover:scale-[1.03] active:scale-[0.97] rounded-card"
+<div
+  class="group/card relative w-full text-left font-body cursor-pointer transition-transform duration-300 ease-[cubic-bezier(0.34,1.56,0.64,1)] hover:-translate-y-0.5 active:scale-[0.96] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink dark:focus-visible:ring-bone"
+  role="button"
+  tabindex="0"
+  [attr.aria-label]="artist().name"
   (click)="onArtistClick.emit(artist())"
+  (keydown.enter)="onArtistClick.emit(artist())"
+  (keydown.space)="onArtistClick.emit(artist()); $event.preventDefault()"
 >
   <div
-    class="relative w-full aspect-square mb-1 rounded-card overflow-hidden group"
+    class="media relative w-full aspect-square overflow-hidden bg-ink-900"
   >
     @if (artist().image?.trim()) {
       <img
         [src]="artist().image"
         [alt]="artist().name"
         loading="lazy"
-        class="w-full h-full object-cover transition-transform duration-500 ease-[cubic-bezier(0.4,0,0.2,1)] group-hover:scale-105"
+        class="artist-cover-image w-full h-full object-cover transition-transform duration-500 ease-[cubic-bezier(0.4,0,0.2,1)] group-hover/card:scale-105"
       />
+    } @else {
+      <div
+        class="w-full h-full flex items-center justify-center font-display text-2xl font-bold text-bone-700 dark:text-ink-200 bg-bone-400 dark:bg-ink-500"
+        aria-hidden="true"
+      >
+        {{ artist().name.slice(0, 2).toUpperCase() }}
+      </div>
     }
-    <button
-      class="absolute top-1 right-1 w-6 h-6 rounded-full border-none cursor-pointer flex items-center justify-center transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] p-0 text-sm"
-      [class]="
-        isFavorite()
-          ? 'bg-bone text-ink'
-          : 'bg-black/40 text-white hover:bg-black/70'
-      "
-      [style.animation]="
-        isFavorite() ? 'popIn var(--dur-fast) var(--ease)' : null
-      "
-      (click)="toggleFavorite($event)"
-      [title]="isFavorite() ? 'Quitar de favoritos' : 'Añadir a favoritos'"
-    >
-      @if (isFavorite()) {
-        <app-icon name="heart-filled" class="w-4 h-4" />
-      } @else {
-        <app-icon name="heart" class="w-4 h-4" />
-      }
-    </button>
-  </div>
-  <div class="flex-1 flex flex-col">
+
+    <div class="artist-cover-shade absolute inset-0 pointer-events-none" aria-hidden="true"></div>
+
     <span
-      class="font-display text-base font-semibold text-bone-900 whitespace-nowrap overflow-hidden text-ellipsis leading-[1.2]"
+      class="artist-label absolute inset-x-0 bottom-0 z-10 px-3 pb-3 pt-8 font-display text-[0.8125rem] font-semibold leading-[1.25] text-white truncate"
       >{{ artist().name }}</span
     >
+
+    <button
+      type="button"
+      class="artist-favorite absolute right-2 top-2 z-20 flex h-7 w-7 items-center justify-center rounded-full border-none p-0 cursor-pointer backdrop-blur-sm transition-[transform,background-color,color] duration-200 ease-[cubic-bezier(0.34,1.56,0.64,1)] hover:scale-110 active:scale-90"
+      [class]="
+        isFavorite()
+          ? 'bg-ink text-bone dark:bg-bone dark:text-ink'
+          : 'bg-bone/85 text-ink dark:bg-ink/80 dark:text-bone'
+      "
+      [title]="isFavorite() ? 'Quitar de favoritos' : 'Añadir a favoritos'"
+      (click)="toggleFavorite($event)"
+    >
+      <app-icon
+        [name]="isFavorite() ? 'heart-filled' : 'heart'"
+        class="w-3 h-3"
+      />
+    </button>
   </div>
-</button>
+</div>

@@ -201,7 +201,7 @@ type WishlistEntryExtended = WishlistEntry & {
                 }
               </span>
 
-              @if (showTypeChip() && source() !== 'search') {
+              @if (showTypeChip() && source() !== 'search' && !isWishlist()) {
                 <app-type-chip [type]="itemType()" />
               }
             </div>

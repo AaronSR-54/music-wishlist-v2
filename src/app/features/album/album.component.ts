@@ -135,7 +135,7 @@ interface AlbumDetail {
               class="relative shrink-0 w-[200px] h-[200px] rounded-md overflow-hidden max-md:w-3/4 max-md:h-auto max-md:aspect-square shadow-ink/5 shadow-lg album-cover"
             >
               <app-cover [name]="a.name" [coverUrl]="a.coverUrl" />
-              <div class="absolute right-2 top-2 origin-top-right max-md:scale-125">
+              <div class="absolute left-2 top-2 origin-top-left max-md:scale-125">
                 <app-type-chip
                   [type]="albumType()"
                   [solid]="true"
@@ -451,7 +451,10 @@ export class AlbumComponent {
     const url = `https://deezer.com/track/${menu.item.id}`;
     try {
       await navigator.clipboard.writeText(url);
-      this.toast.success(this.languageService.t().toastLinkCopied);
+      this.toast.success(
+        this.languageService.t().toastLinkCopied,
+        this.languageService.t().toastLinkCopiedPlural,
+      );
     } catch {
       this.toast.error(this.languageService.t().toastError);
     }

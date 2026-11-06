@@ -17,44 +17,42 @@ export interface Toast {
   type: ToastType;
   isRemoving?: boolean;
   action?: { label: string; fn: () => void };
+  count?: number;
+  pluralMessage?: string;
 }
 
 @Injectable({ providedIn: 'root' })
 export class ToastService {
-  private _toasts = signal<Toast[]>([]);
+  private activeToast = signal<Toast | null>(null);
+  currentToast = this.activeToast.asReadonly();
   private appRef = inject(ApplicationRef);
+  private queue: Toast[] = [];
+  private nextId = 0;
 
-  toasts = this._toasts.asReadonly();
-
-  show(message: string, type: ToastType = 'info'): void {
-    const id = Date.now();
-    const toast: Toast = { id, message, type, isRemoving: false };
-    this._toasts.update((t) => [...t, toast]);
-    this.appRef.tick();
-
-    setTimeout(() => {
-      this._toasts.update((t) =>
-        t.map((x) => (x.id === id ? { ...x, isRemoving: true } : x)),
-      );
-      this.appRef.tick();
-
-      setTimeout(() => {
-        this._toasts.update((t) => t.filter((x) => x.id !== id));
-        this.appRef.tick();
-      }, 300);
-    }, 3000);
+  show(
+    message: string,
+    type: ToastType = 'info',
+    pluralMessage?: string,
+  ): void {
+    this.enqueue({
+      id: this.nextId++,
+      message,
+      type,
+      isRemoving: false,
+      pluralMessage,
+    });
   }
 
-  success(message: string): void {
-    this.show(message, 'success');
+  success(message: string, pluralMessage?: string): void {
+    this.show(message, 'success', pluralMessage);
   }
 
-  error(message: string): void {
-    this.show(message, 'error');
+  error(message: string, pluralMessage?: string): void {
+    this.show(message, 'error', pluralMessage);
   }
 
-  info(message: string): void {
-    this.show(message, 'info');
+  info(message: string, pluralMessage?: string): void {
+    this.show(message, 'info', pluralMessage);
   }
 
   showWithAction(
@@ -62,10 +60,64 @@ export class ToastService {
     action: { label: string; fn: () => void },
     type: ToastType = 'info'
   ): void {
-    const id = Date.now();
-    const toast: Toast = { id, message, type, isRemoving: false, action };
-    this._toasts.update((t) => [...t, toast]);
+    this.enqueue({
+      id: this.nextId++,
+      message,
+      type,
+      isRemoving: false,
+      action,
+    });
+  }
+
+  private enqueue(toast: Toast): void {
+    const active = this.activeToast();
+    if (active && !active.isRemoving && this.isSameEvent(active, toast)) {
+      this.activeToast.set({
+        ...active,
+        count: (active.count ?? 1) + 1,
+        pluralMessage: active.pluralMessage ?? toast.pluralMessage,
+      });
+      this.appRef.tick();
+      return;
+    }
+
+    const queued = this.queue.find((item) => this.isSameEvent(item, toast));
+    if (queued) {
+      queued.count = (queued.count ?? 1) + 1;
+      queued.pluralMessage ??= toast.pluralMessage;
+      return;
+    }
+
+    this.queue.push(toast);
+    this.showNext();
+  }
+
+  private isSameEvent(first: Toast, second: Toast): boolean {
+    return (
+      first.message === second.message &&
+      first.type === second.type &&
+      first.action?.label === second.action?.label
+    );
+  }
+
+  private showNext(): void {
+    if (this.activeToast() || this.queue.length === 0) return;
+
+    const toast = this.queue.shift()!;
+    this.activeToast.set(toast);
     this.appRef.tick();
+
+    // Include the 500ms exit animation in the toast's short display window.
+    setTimeout(() => {
+      this.activeToast.set({ ...toast, isRemoving: true });
+      this.appRef.tick();
+
+      setTimeout(() => {
+        this.activeToast.set(null);
+        this.appRef.tick();
+        this.showNext();
+      }, 500);
+    }, 1500);
   }
 }
 
@@ -139,7 +191,7 @@ export class ToastService {
       aria-live="polite"
       aria-atomic="true"
     >
-      @for (toast of toasts(); track toast.id) {
+      @if (toastService.currentToast(); as toast) {
         <div
           class="p-3 w-full bg-light dark:bg-dark text-ink dark:text-bone [&.error]:text-red-600 [&.error]:dark:text-red-400 font-display italic shadow-lg rounded-card flex gap-2 items-center border border-solid border-ink-200 pointer-events-auto transition-all duration-300 toast-item"
           [class.toast-entering]="!toast.isRemoving"
@@ -156,7 +208,13 @@ export class ToastService {
               <app-icon name="info" />
             }
           </span>
-          <span>{{ toast.message }}</span>
+          <span>
+            {{
+              toast.count && toast.count > 1
+                ? toast.pluralMessage || toast.message + ' (×' + toast.count + ')'
+                : toast.message
+            }}
+          </span>
           @if (toast.action) {
             <button
               (click)="toast.action!.fn()"
@@ -171,6 +229,5 @@ export class ToastService {
   `,
 })
 export class ToastContainerComponent {
-  private toastService = inject(ToastService);
-  toasts = this.toastService.toasts;
+  protected toastService = inject(ToastService);
 }

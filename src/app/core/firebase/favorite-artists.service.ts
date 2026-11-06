@@ -143,9 +143,12 @@ export class FavoriteArtistsService {
           return addDoc(col, entry);
         });
       }
-      this.toastService.success(this.lang.t().toastFavoriteAdded);
+      this.toastService.success(
+        this.lang.t().toastFavoriteAdded,
+        this.lang.t().toastFavoriteAddedPlural,
+      );
     } catch {
-      this.toastService.error(this.lang.t().toastError);
+      this.toastService.error(this.lang.t().toastError, this.lang.t().toastErrorPlural);
     }
   }
 
@@ -167,9 +170,12 @@ export class FavoriteArtistsService {
           return deleteDoc(docRef);
         });
       }
-      this.toastService.success(this.lang.t().toastFavoriteRemoved);
+      this.toastService.success(
+        this.lang.t().toastFavoriteRemoved,
+        this.lang.t().toastFavoriteRemovedPlural,
+      );
     } catch {
-      this.toastService.error(this.lang.t().toastError);
+      this.toastService.error(this.lang.t().toastError, this.lang.t().toastErrorPlural);
     }
   }
 }
