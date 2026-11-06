@@ -58,7 +58,8 @@ On auth effect, initializes: `WishlistService`, `FavoriteArtistsService`, `Wishl
 - Handles `downloaded`, release and `test` notifications
 - `PushNotificationService` manages device registration client-side for both transports
 - **Native permission owns the switch**: on native there is no enable/disable control in Perfil. `NativeShellService` calls `PushNotificationService.initializeNative()` after the splash, which creates the `releases` Android channel, asks for `POST_NOTIFICATIONS` once per install (`localStorage['mw-native-notif-asked-v1']`) and registers the device whenever the permission is granted. A `resume` listener re-checks the permission, re-registers on grant and unsubscribes the server registration on revocation. The browser keeps the manual toggle and Web Push flow.
-- FCM sends (`api/push.js`, `api/check-releases.js`) target the `releases` channel via `android.notification.channelId`; `AndroidManifest.xml` sets `com.google.firebase.messaging.default_notification_channel_id` as fallback.
+- Android release alerts use data-only FCM messages; `ReleaseMessagingService` renders a cover-art notification with **Add to wishlist** and **View release** actions. Tapping either action opens the album route; the add route queues the release after auth restores. The service extends Capacitor's messaging service so token refresh events keep working.
+- FCM notification messages from `api/push.js` target the `releases` channel via `android.notification.channelId`; `AndroidManifest.xml` sets `com.google.firebase.messaging.default_notification_channel_id` as fallback. `api/check-releases.js` sends release data to the native service so Android can add interactive actions.
 - Registrations stored per device at Firestore `push-subscriptions/{uid}` (`subscriptions` map for web, `tokens` map for native)
 - Server sends web via the `web-push` library (VAPID env vars) and native via the FCM HTTP v1 `messages:send` API
 - Avoid `firebase-admin` SDK in endpoints (gRPC/OpenSSL issues on Vercel). Use Firestore REST API directly with Firebase ID token auth or service account OAuth2.
@@ -100,6 +101,7 @@ Angular signals throughout (no NgRx):
 | `src/app/core/firebase/favorite-artists.service.ts` | Favorite artists CRUD with Deezer image enrichment |
 | `src/app/core/services/push-notification.service.ts` | Device push registration (Web Push + native FCM) |
 | `src/app/core/native/native-shell.service.ts` | Native shell: back button, deep links, notification taps, status bar |
+| `android/app/src/main/java/com/musicwishlist/app/ReleaseMessagingService.java` | Native rich release notifications, artwork, and wishlist/view actions |
 | `src/app/core/native/native-push.ts` | Injectable wrapper over `@capacitor/push-notifications` |
 | `src/app/core/api/api-base-url.interceptor.ts` | Prefixes `/api/*` with `apiBaseUrl` on native |
 | `src/app/core/services/preview.service.ts` | HTML5 audio track preview player |
