@@ -66,15 +66,26 @@ export class NativeShellService {
 
   private initAppLinks(): void {
     void CapacitorApp.addListener('appUrlOpen', ({ url }) => {
-      let path = '/';
-      try {
-        const parsed = new URL(url);
-        path = `${parsed.pathname}${parsed.search}${parsed.hash}` || '/';
-      } catch {
-        return;
-      }
-      this.zone.run(() => void this.router.navigateByUrl(path));
+      this.openAppUrl(url);
     });
+
+    // Notification action buttons can cold-start the app with a custom URL.
+    void CapacitorApp.getLaunchUrl()
+      .then((launch) => {
+        if (launch?.url) this.openAppUrl(launch.url);
+      })
+      .catch(() => {});
+  }
+
+  private openAppUrl(url: string): void {
+    let path = '/';
+    try {
+      const parsed = new URL(url);
+      path = `${parsed.pathname}${parsed.search}${parsed.hash}` || '/';
+    } catch {
+      return;
+    }
+    this.zone.run(() => void this.router.navigateByUrl(path));
   }
 
   private initNotificationTaps(): void {

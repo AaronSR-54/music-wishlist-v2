@@ -108,6 +108,15 @@ self.addEventListener('fetch', (event) => {
 
 const RELEASE_EMOJI = { Álbum: '💿', EP: '🎧', Canción: '🎵' };
 
+function getReleaseLabel(releaseType, language) {
+  const labels = {
+    Álbum: { es: 'álbum', en: 'album' },
+    EP: { es: 'EP', en: 'EP' },
+    Canción: { es: 'single', en: 'single' },
+  };
+  return labels[releaseType]?.[language] ?? (language === 'en' ? 'release' : 'lanzamiento');
+}
+
 function parsePushData(event) {
   if (!event.data) return null;
   try {
@@ -151,19 +160,35 @@ self.addEventListener('push', (event) => {
     return;
   }
 
+  const language = self.navigator.language?.toLowerCase().startsWith('en') ? 'en' : 'es';
   const emoji = RELEASE_EMOJI[data.releaseType] ?? '🎵';
+  const releaseLabel = getReleaseLabel(data.releaseType, language);
+  const artist = data.artist ?? 'Music Wishlist';
   event.waitUntil(
-    self.registration.showNotification(`${emoji} Nuevo ${data.releaseType} de ${data.artist}`, {
-      body: data.title,
-      icon: data.coverUrl,
-      image: data.coverUrl,
-      badge: `/badge.png?v=${BADGE_VERSION}`,
-      data: { albumId: data.albumId },
-      actions: [
-        { action: 'add', title: '+ Wishlist' },
-        { action: 'view', title: 'Ver release' },
-      ],
-    })
+    self.registration.showNotification(
+      `${emoji} ${language === 'en' ? 'New' : 'Nuevo'} ${releaseLabel} · ${artist}`,
+      {
+        body: data.title,
+        icon: '/icons/icon-192x192.png',
+        image: data.coverUrl,
+        badge: `/badge.png?v=${BADGE_VERSION}`,
+        data: { albumId: data.albumId, artistId: data.artistId },
+        tag: `release-${data.albumId}`,
+        renotify: false,
+        vibrate: [120, 50, 120],
+        lang: language,
+        actions: [
+          {
+            action: 'add',
+            title: language === 'en' ? 'Add to wishlist' : 'Añadir a wishlist',
+          },
+          {
+            action: 'view',
+            title: language === 'en' ? 'View release' : 'Ver lanzamiento',
+          },
+        ],
+      },
+    ),
   );
 });
 

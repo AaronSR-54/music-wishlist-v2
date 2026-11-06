@@ -263,7 +263,7 @@ export default async (req, res) => {
     const docUrl = `${FIRESTORE_BASE}/push-subscriptions/${uid}`;
 
     if (action === 'subscribe') {
-      const { clientId, token } = req.body ?? {};
+      const { clientId, token, language } = req.body ?? {};
       if (!clientId) {
         return res.status(400).json({ error: 'Missing clientId' });
       }
@@ -276,6 +276,7 @@ export default async (req, res) => {
         registrations.tokens[clientId] = {
           token,
           platform: 'native',
+          language: language === 'en' ? 'en' : 'es',
           updatedAt: Date.now(),
         };
       } else {

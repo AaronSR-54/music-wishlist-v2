@@ -78,8 +78,6 @@ const RECORD_TYPE_MAP = {
   single: 'Canción',
 };
 
-const RELEASE_EMOJI = { Álbum: '💿', EP: '🎧', Canción: '🎵' };
-
 function toDataStrings(data) {
   const out = {};
   for (const [k, v] of Object.entries(data ?? {})) {
@@ -89,23 +87,25 @@ function toDataStrings(data) {
 }
 
 async function sendFcm(accessToken, deviceToken, notification, data) {
+  const message = {
+    token: deviceToken,
+    data: toDataStrings(data),
+    android: {
+      priority: 'high',
+      ...(notification
+        ? { notification: { channelId: 'releases', sound: 'default' } }
+        : {}),
+    },
+  };
+  if (notification) message.notification = notification;
+
   const res = await fetch(FCM_SEND_URL, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
       Authorization: `Bearer ${accessToken}`,
     },
-    body: JSON.stringify({
-      message: {
-        token: deviceToken,
-        notification,
-        data: toDataStrings(data),
-        android: {
-          priority: 'high',
-          notification: { channelId: 'releases', sound: 'default' },
-        },
-      },
-    }),
+    body: JSON.stringify({ message }),
   });
   if (!res.ok) {
     const body = await res.json().catch(() => ({}));
@@ -447,9 +447,7 @@ async function run(uid, idToken, clientId) {
 
     for (const album of albumsToNotify) {
       const releaseType = RECORD_TYPE_MAP[album.record_type?.toLowerCase()] ?? 'Álbum';
-      const coverUrl = album.cover_xl ?? album.cover_big ?? album.cover_medium ?? '';
-      const emoji = RELEASE_EMOJI[releaseType] ?? '🎵';
-
+      const coverUrl = album.cover_medium ?? album.cover_big ?? album.cover_xl ?? '';
       const payload = JSON.stringify({
         title: album.title,
         artist: favorite.name,
@@ -479,11 +477,18 @@ async function run(uid, idToken, clientId) {
           await sendFcm(
             fcmToken,
             entry.token,
+            null,
             {
-              title: `${emoji} Nuevo ${releaseType} de ${favorite.name}`,
-              body: album.title,
+              type: 'release',
+              title: album.title,
+              artist: favorite.name,
+              releaseType,
+              coverUrl,
+              albumId: String(album.id),
+              artistId: String(favorite.artistId),
+              releaseDate: album.release_date,
+              language: entry.language === 'en' ? 'en' : 'es',
             },
-            { type: 'release', albumId: String(album.id) },
           );
           sentAny = true;
         } catch (err) {

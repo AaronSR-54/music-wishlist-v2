@@ -4,4 +4,6 @@
     <string name="title_activity_main">Music Wishlist</string>
     <string name="package_name">com.musicwishlist.app</string>
     <string name="custom_url_scheme">com.musicwishlist.app</string>
+    <string name="notification_channel_name">New releases</string>
+    <string name="notification_channel_description">Alerts for new releases from your favorite artists</string>
 </resources>

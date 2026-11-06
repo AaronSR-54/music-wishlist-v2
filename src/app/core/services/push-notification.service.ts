@@ -433,6 +433,7 @@ export class PushNotificationService {
             token,
             platform: 'native',
             clientId: this.getClientId(),
+            language: getNotificationLanguage(),
           },
           { headers: { Authorization: `Bearer ${idToken}` } },
         ),
@@ -471,4 +472,16 @@ function urlBase64ToUint8Array(base64String: string): Uint8Array {
   const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
   const rawData = atob(base64);
   return Uint8Array.from([...rawData].map((c) => c.charCodeAt(0)));
+}
+
+function getNotificationLanguage(): 'es' | 'en' {
+  try {
+    const saved = localStorage.getItem('app-language');
+    if (saved === 'es' || saved === 'en') return saved;
+  } catch {
+    // Fall through to the device locale.
+  }
+  return typeof navigator !== 'undefined' && navigator.language.startsWith('en')
+    ? 'en'
+    : 'es';
 }
