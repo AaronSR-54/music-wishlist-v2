@@ -46,7 +46,7 @@ import { ToastService } from '../../shared/components/toast/toast.component';
   `,
   template: `
     <div
-      class="flex flex-col h-full overflow-hidden gap-4 bg-bone-300 dark:bg-ink"
+      class="flex flex-col h-full overflow-hidden gap-4 bg-bone-300 dark:bg-ink safe-area-inset-top safe-area-inset-bottom"
     >
       <div
         class="flex items-center justify-between h-16 px-6 shrink-0 gap-4 max-md:h-14 max-md:px-4 profile-header"
