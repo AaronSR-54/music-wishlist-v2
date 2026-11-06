@@ -1,12 +1,8 @@
 <es-ES>
-Novedades de la 0.32.13:
-• Carrusel de artistas favoritos rediseñado, con transiciones fluidas entre tamaños y portadas.
-• Mejoras de usabilidad en búsqueda, fichas de artista y álbum, y wishlist.
-• Las acciones repetidas se agrupan en notificaciones más claras.
+Novedades de la 0.32.14:
+• Mejoras de contraste en la búsqueda y tonos oscuros más coherentes en las tarjetas de la wishlist.
 </es-ES>
 <en-US>
-What's new in 0.32.13:
-• Redesigned favorite artists carousel with smooth transitions between cover sizes.
-• Usability improvements to search, artist and album pages, and the wishlist.
-• Repeated actions are grouped into clearer notifications.
+What's new in 0.32.14:
+• Improved search contrast and more consistent dark tones across wishlist cards.
 </en-US>
