@@ -57,6 +57,8 @@ On auth effect, initializes: `WishlistService`, `FavoriteArtistsService`, `Wishl
 - Web uses the custom service worker at `public/service-worker.js` (registered from `main.ts`, web only). The native app updates through Google Play.
 - Handles `downloaded`, release and `test` notifications
 - `PushNotificationService` manages device registration client-side for both transports
+- **Native permission owns the switch**: on native there is no enable/disable control in Perfil. `NativeShellService` calls `PushNotificationService.initializeNative()` after the splash, which creates the `releases` Android channel, asks for `POST_NOTIFICATIONS` once per install (`localStorage['mw-native-notif-asked-v1']`) and registers the device whenever the permission is granted. A `resume` listener re-checks the permission, re-registers on grant and unsubscribes the server registration on revocation. The browser keeps the manual toggle and Web Push flow.
+- FCM sends (`api/push.js`, `api/check-releases.js`) target the `releases` channel via `android.notification.channelId`; `AndroidManifest.xml` sets `com.google.firebase.messaging.default_notification_channel_id` as fallback.
 - Registrations stored per device at Firestore `push-subscriptions/{uid}` (`subscriptions` map for web, `tokens` map for native)
 - Server sends web via the `web-push` library (VAPID env vars) and native via the FCM HTTP v1 `messages:send` API
 - Avoid `firebase-admin` SDK in endpoints (gRPC/OpenSSL issues on Vercel). Use Firestore REST API directly with Firebase ID token auth or service account OAuth2.
@@ -147,7 +149,7 @@ Angular signals throughout (no NgRx):
 | `**` | redirect to `/` | — |
 
 ## Conventions
-- All SVGs via `icon.component.ts` + `icon-registry.ts` (26 icons) — never inline SVG
+- All SVGs via `icon.component.ts` + `icon-registry.ts` (27 icons) — never inline SVG
 - Tailwind CSS only for styles, design tokens in `src/styles.css` `@theme` block
 - I18n: `LanguageService.t()` returns a `computed()` with translations
 - `ToastService` for success/error toasts
