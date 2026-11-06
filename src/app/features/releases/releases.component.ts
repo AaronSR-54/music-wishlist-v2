@@ -59,8 +59,7 @@ import { apiUrl } from '../../core/api/api-url';
       overflow: auto;
       scrollbar-width: none;
       height: 100%;
-      padding-top: 16px;
-      padding-bottom: 2rem;
+      padding: 24px 16px 2rem;
       -webkit-mask-image: linear-gradient(
         to bottom,
         transparent 0%,
@@ -196,6 +195,7 @@ import { apiUrl } from '../../core/api/api-url';
                   class="[animation:scaleIn_300ms_ease_both]"
                   [style.animation-delay]="i * 30 + 'ms'"
                   [item]="item"
+                  [compact]="true"
                   [isAdded]="isInWishlist(item.id)"
                   (toggleWishlist)="toggleWishlist($event)"
                   (onAlbumClick)="goToAlbum($event)"

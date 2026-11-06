@@ -168,7 +168,7 @@ type WishlistEntryExtended = WishlistEntry & {
               >
                 @if (isWishlist() && (wishlistItem().artistId || isAlbumType(wishlistItem().type))) {
                   <button
-                    class="hover:underline hover:text-accent-track dark:hover:text-accent-dark-track transition-colors"
+                    class="hover:underline hover:text-accent-hover-track focus-visible:text-accent-hover-track dark:hover:text-accent-dark-track dark:focus-visible:text-accent-dark-track transition-colors"
                     (click)="onArtistNameClick($event)"
                   >
                     {{ subtitle() }}
@@ -388,11 +388,14 @@ export class SearchResultItemComponent {
     const accent = this.accent();
 
     return [
-      `group-hover:text-accent-${accent}`,
       `dark:group-hover:text-accent-dark-${accent}`,
-      'group-hover:opacity-80',
+      `group-hover:text-accent-hover-${accent}`,
+      `group-focus-within:text-accent-hover-${accent}`,
+      `dark:group-focus-within:text-accent-dark-${accent}`,
+      'dark:group-hover:opacity-80',
+      'dark:group-focus-within:opacity-80',
       ...(this.isPreviewing()
-        ? [`!text-accent-${accent}`, `dark:!text-accent-dark-${accent}`]
+        ? [`!text-accent-hover-${accent}`, `dark:!text-accent-dark-${accent}`]
         : []),
     ];
   }

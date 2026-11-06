@@ -13,6 +13,13 @@ const accentDark = {
   artist: '#D1B490',
 };
 
+const accentHoverLight = {
+  track: 'rgb(var(--accent-hover-track) / <alpha-value>)',
+  album: 'rgb(var(--accent-hover-album) / <alpha-value>)',
+  ep: 'rgb(var(--accent-hover-ep) / <alpha-value>)',
+  artist: 'rgb(var(--accent-hover-artist) / <alpha-value>)',
+};
+
 const accentTypes = ['track', 'album', 'ep', 'artist'];
 
 export default {
@@ -21,9 +28,13 @@ export default {
   safelist: [
     ...accentTypes.flatMap((t) => [
       `group-hover:text-accent-${t}`,
+      `group-hover:text-accent-hover-${t}`,
+      `group-focus-within:text-accent-hover-${t}`,
       `group-hover:opacity-80`,
       `!text-accent-${t}`,
+      `!text-accent-hover-${t}`,
       `dark:group-hover:text-accent-dark-${t}`,
+      `dark:group-focus-within:text-accent-dark-${t}`,
       `dark:!text-accent-dark-${t}`,
     ]),
   ],
@@ -57,6 +68,7 @@ export default {
           900: '#070705',
         },
         accent: accentLight,
+        'accent-hover': accentHoverLight,
         'accent-dark': accentDark,
       },
       fontFamily: {

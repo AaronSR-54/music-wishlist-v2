@@ -3,6 +3,13 @@
 @tailwind components;
 @tailwind utilities;
 
+:root {
+  --accent-hover-track: 137 98 0;
+  --accent-hover-album: 0 115 138;
+  --accent-hover-ep: 163 55 22;
+  --accent-hover-artist: 99 69 31;
+}
+
 *,
 *::before,
 *::after {
