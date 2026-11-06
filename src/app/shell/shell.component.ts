@@ -90,10 +90,13 @@ type Tab = 'releases' | 'search' | 'wishlist';
                 <app-releases />
               }
               @case ('search') {
-                <app-search />
+                <app-search
+                  [focusOnInit]="focusSearchOnOpen()"
+                  (focusHandled)="focusSearchOnOpen.set(false)"
+                />
               }
               @case ('wishlist') {
-                <app-wishlist />
+                <app-wishlist (searchRequested)="openSearchFromWishlist()" />
               }
             }
           }
@@ -124,10 +127,13 @@ type Tab = 'releases' | 'search' | 'wishlist';
               <app-releases />
             }
             @case ('search') {
-              <app-search />
+              <app-search
+                [focusOnInit]="focusSearchOnOpen()"
+                (focusHandled)="focusSearchOnOpen.set(false)"
+              />
             }
             @case ('wishlist') {
-              <app-wishlist />
+              <app-wishlist (searchRequested)="openSearchFromWishlist()" />
             }
           }
         }
@@ -160,6 +166,7 @@ export class ShellComponent {
   );
 
   activeTab = signal<Tab>(this.getDefaultTab());
+  focusSearchOnOpen = signal(false);
   hasChildRoute = signal(false);
 
   t = computed(() => this.languageService.t());
@@ -215,6 +222,11 @@ export class ShellComponent {
 
   goToProfile() {
     this.router.navigate(['/profile']);
+  }
+
+  openSearchFromWishlist(): void {
+    this.focusSearchOnOpen.set(true);
+    this.activeTab.set('search');
   }
 
   onNavTabChange(value: string) {

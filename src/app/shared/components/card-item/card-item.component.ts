@@ -90,7 +90,7 @@ import { ButtonComponent } from '../button/button.component';
   `,
   template: `
     <div
-      class="card relative flex flex-col p-2 rounded-lg bg-bone-200 dark:bg-ink-200 gap-1 w-full cursor-pointer"
+      class="card relative flex flex-col p-2 rounded-lg bg-bone-200 dark:bg-ink-600 gap-1 w-full cursor-pointer"
       [class.compact]="compact()"
       [attr.data-type]="releaseItem().type"
       (click)="onCardClick()"
@@ -113,6 +113,7 @@ import { ButtonComponent } from '../button/button.component';
               <app-type-chip
                 [type]="releaseItem().type"
                 [solid]="true"
+                size="cover"
                 colorScheme="dark"
               />
             </div>
@@ -169,20 +170,20 @@ import { ButtonComponent } from '../button/button.component';
 
         <div class="card-actions flex items-center gap-1.5 md:gap-2 min-w-0">
            <button
-            class="flex-1 min-w-0 flex items-center justify-center gap-1 h-9 md:h-11 text-xs sm:text-sm md:text-base text-ink font-display font-medium [&.added]:font-bold [&.added]:bg-ink italic [&.added]:not-italic [&.added]:text-bone [&.added]:dark:bg-bone  dark:text-bone [&.added]:dark:text-ink border border-ink dark:border-bone rounded-card uppercase px-1.5 sm:px-3 md:px-4 overflow-hidden"
+            class="flex-1 min-w-0 flex items-center justify-center gap-1 h-10 md:h-12 text-xs sm:text-sm md:text-base text-ink font-display font-medium [&.added]:font-bold [&.added]:bg-ink italic [&.added]:not-italic [&.added]:text-bone [&.added]:dark:bg-bone  dark:text-bone [&.added]:dark:text-ink border border-ink dark:border-bone rounded-card uppercase px-1.5 sm:px-3 md:px-4 overflow-hidden"
             [class.added]="isAdded()"
             (click)="onToggleWishlist(); $event.stopPropagation()"
           >
             @if (isAdded()) {
               <app-icon
                 name="check"
-                class="w-4 h-4 md:w-5 md:h-5 shrink-0"
+                class="w-[18px] h-[18px] md:w-[22px] md:h-[22px] shrink-0"
               />
               <span class="min-w-0 truncate">{{ t().added }}</span>
             } @else {
               <app-icon
                 name="plus"
-                class="w-4 h-4 md:w-5 md:h-5 shrink-0"
+                class="w-[18px] h-[18px] md:w-[22px] md:h-[22px] shrink-0"
               />
               <span class="min-w-0 truncate">{{ t().save }}</span>
             }
@@ -190,10 +191,13 @@ import { ButtonComponent } from '../button/button.component';
           <button
             appBtn
             variant="action"
-            class="!w-9 !h-9 md:!w-11 md:!h-11 shrink-0"
+            class="!w-10 !h-10 md:!w-12 md:!h-12 shrink-0"
             (click)="openMoreMenu($event)"
           >
-            <app-icon name="more" class="w-4 h-4 md:w-5 md:h-5 text-ink dark:text-bone" />
+            <app-icon
+              name="more"
+              class="w-[18px] h-[18px] md:w-[22px] md:h-[22px] text-ink dark:text-bone"
+            />
           </button>
         </div>
       </div>

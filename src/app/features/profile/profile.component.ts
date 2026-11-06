@@ -16,6 +16,7 @@ import { LanguageService } from '../../core/i18n/language.service';
 import { VersionService } from '../../core/version/version.service';
 import { SuperuserService } from '../../core/superuser/superuser.service';
 import { ToastService } from '../../shared/components/toast/toast.component';
+import { ScrollMaskDirective } from '../../shared/directives/scroll-mask.directive';
 
 @Component({
   selector: 'app-profile',
@@ -27,6 +28,7 @@ import { ToastService } from '../../shared/components/toast/toast.component';
     ProfileStatsComponent,
     ProfileSharedComponent,
     ProfileSettingsComponent,
+    ScrollMaskDirective,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   styles: `
@@ -72,6 +74,7 @@ import { ToastService } from '../../shared/components/toast/toast.component';
       @if (auth.currentUser(); as user) {
         <div
           class="py-8 px-4 md:p-8 min-h-full w-full max-w-7xl gap-8 flex flex-col justify-between mx-auto overflow-auto [scrollbar-width:none]"
+          appScrollMask
         >
           <section class="flex flex-col gap-12">
             <!-- HERO -->

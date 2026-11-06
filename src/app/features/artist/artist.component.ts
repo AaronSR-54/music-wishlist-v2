@@ -29,6 +29,7 @@ import { ArtistCacheService } from '../../core/services/artist-cache.service';
 import { ContextMenuPanelComponent } from '../../shared/components/context-menu-panel/context-menu-panel.component';
 import { ToastService } from '../../shared/components/toast/toast.component';
 import { SuperuserService } from '../../core/superuser/superuser.service';
+import { ScrollMaskDirective } from '../../shared/directives/scroll-mask.directive';
 
 @Component({
   selector: 'app-artist',
@@ -43,6 +44,7 @@ import { SuperuserService } from '../../core/superuser/superuser.service';
     PageHeaderComponent,
     ButtonComponent,
     ContextMenuPanelComponent,
+    ScrollMaskDirective,
   ],
   styles: `
     @keyframes popIn {
@@ -66,20 +68,6 @@ import { SuperuserService } from '../../core/superuser/superuser.service';
       scrollbar-width: none;
       padding-bottom: 2rem;
       padding-top: 4px;
-      -webkit-mask-image: linear-gradient(
-        to bottom,
-        transparent 0%,
-        black 16px,
-        black 95%,
-        transparent 100%
-      );
-      mask-image: linear-gradient(
-        to bottom,
-        transparent 0%,
-        black 16px,
-        black 95%,
-        transparent 100%
-      );
     }
     .scroll-fade::-webkit-scrollbar {
       display: none;
@@ -140,74 +128,75 @@ import { SuperuserService } from '../../core/superuser/superuser.service';
         (back)="goBack()"
       />
 
-      <div class="scroll-fade flex flex-col p-2 gap-16">
-        <div
-          class="flex gap-2 max-lg:flex-col max-lg:items-center lg:gap-8 max-lg:text-center mt-4"
-        >
+      <div class="scroll-fade flex flex-col p-2 gap-8 lg:gap-16" appScrollMask>
+        <div class="flex items-center gap-4 lg:gap-8 mt-4">
           <div
-            class="shrink-0 w-[200px] h-[200px] rounded-md overflow-hidden max-lg:w-full max-lg:h-auto max-lg:aspect-square shadow-ink/5 shadow-lg artist-cover"
+            class="shrink-0 w-[112px] h-[112px] lg:w-[168px] lg:h-[168px] rounded-full overflow-hidden shadow-ink/5 shadow-lg artist-cover"
           >
             @if (artist(); as a) {
               <app-cover [name]="a.name" [coverUrl]="a.picture_big" />
             }
           </div>
 
-          <div class="flex-1 flex flex-col justify-start">
+          <div class="flex-1 min-w-0 flex flex-col gap-2 lg:gap-3">
             @if (artist(); as a) {
-              <div class="flex flex-col text-ink dark:text-bone">
-                <div class="flex items-center gap-4 mb-5 artist-name">
-                  <h1
-                    class="m-0 text-[2rem] lg:text-[4rem] font-bold font-display flex-1"
-                  >
-                    {{ a.name }}
-                  </h1>
-                  <button
-                    class="[&.active]:btn-pop-in w-9 h-9 lg:w-12 lg:h-12 rounded-full cursor-pointer flex items-center justify-center text-ink-600 dark:text-bone-600 shrink-0 bg-transparent p-0 transition-[color,transform] duration-fast ease-smooth hover:scale-[1.05] active:scale-[0.88]"
-                    [class.active]="isArtistInWishlist(a.id)"
-                    (click)="toggleArtist($event)"
-                    [title]="
-                      isArtistInWishlist(a.id)
-                        ? t().removeFromWishlist
-                        : t().addToWishlist
-                    "
-                  >
-                    @if (isArtistInWishlist(a.id)) {
-                      <app-icon
-                        name="heart-filled"
-                        class="w-8 h-8 lg:w-12 lg:h-12"
-                      />
-                    } @else {
-                      <app-icon name="heart" class="w-8 h-8 lg:w-12 lg:h-12" />
-                    }
-                  </button>
-                </div>
-
-                <div
-                  class="flex gap-[30px] mb-5 max-lg:justify-center artist-meta"
+              <div class="flex items-center gap-3 lg:gap-4 artist-name">
+                <h1
+                  class="m-0 min-w-0 flex-1 truncate text-[1.75rem] lg:text-[3rem] font-bold font-display leading-[1.15] text-ink dark:text-bone"
                 >
-                  @if (a.nb_fan !== undefined) {
-                    <div class="flex flex-col gap-1">
-                      <span
-                        class="font-display italic text-xs lg:text-base text-ink-700 dark:text-bone-700 uppercase tracking-[0.5px]"
-                        >{{ t().followers }}</span
-                      >
-                      <span class="text-lg lg:text-[1.375rem] font-bold">{{
-                        formatFans(a.nb_fan)
-                      }}</span>
-                    </div>
+                  {{ a.name }}
+                </h1>
+                <button
+                  class="[&.active]:btn-pop-in w-9 h-9 lg:w-12 lg:h-12 rounded-full cursor-pointer flex items-center justify-center text-ink-600 dark:text-bone-600 shrink-0 bg-transparent p-0 transition-[color,transform] duration-fast ease-smooth hover:scale-[1.05] active:scale-[0.88]"
+                  [class.active]="isArtistInWishlist(a.id)"
+                  (click)="toggleArtist($event)"
+                  [title]="
+                    isArtistInWishlist(a.id)
+                      ? t().removeFromWishlist
+                      : t().addToWishlist
+                  "
+                >
+                  @if (isArtistInWishlist(a.id)) {
+                    <app-icon name="heart-filled" class="w-8 h-8 lg:w-12 lg:h-12" />
+                  } @else {
+                    <app-icon name="heart" class="w-8 h-8 lg:w-12 lg:h-12" />
                   }
-                  @if (a.nb_album !== undefined) {
-                    <div class="flex flex-col gap-1">
-                      <span
-                        class="font-display italic text-xs lg:text-base text-ink-700 dark:text-bone-700 uppercase tracking-[0.5px]"
-                        >{{ t().albums2 }}</span
-                      >
-                      <span class="text-lg lg:text-[1.375rem] font-bold">{{
-                        a.nb_album
-                      }}</span>
-                    </div>
-                  }
-                </div>
+                </button>
+              </div>
+
+              <div
+                class="flex flex-wrap items-center gap-x-3 gap-y-1 text-ink dark:text-bone artist-meta"
+              >
+                @if (a.nb_fan !== undefined) {
+                  <span class="flex items-baseline gap-1.5">
+                    <span class="text-base lg:text-[1.375rem] font-bold">{{
+                      formatFans(a.nb_fan)
+                    }}</span>
+                    <span
+                      class="font-display italic text-[0.6875rem] lg:text-sm text-ink-700 dark:text-bone-700 uppercase tracking-[0.5px]"
+                      >{{ t().followers }}</span
+                    >
+                  </span>
+                }
+                @if (
+                  a.nb_fan !== undefined && a.nb_album !== undefined
+                ) {
+                  <span
+                    class="w-px h-3.5 lg:h-4 bg-ink-200 dark:bg-ink-600 self-center"
+                    aria-hidden="true"
+                  ></span>
+                }
+                @if (a.nb_album !== undefined) {
+                  <span class="flex items-baseline gap-1.5">
+                    <span class="text-base lg:text-[1.375rem] font-bold">{{
+                      a.nb_album
+                    }}</span>
+                    <span
+                      class="font-display italic text-[0.6875rem] lg:text-sm text-ink-700 dark:text-bone-700 uppercase tracking-[0.5px]"
+                      >{{ t().albums2 }}</span
+                    >
+                  </span>
+                }
               </div>
             }
           </div>

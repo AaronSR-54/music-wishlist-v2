@@ -6,6 +6,7 @@ import {
 } from '@angular/core';
 import { TrackType } from '../../models/track.model';
 import { LanguageService } from '../../../core/i18n/language.service';
+import { TypeIconComponent } from '../type-icon/type-icon.component';
 // @ts-ignore
 import tailwindConfig from '../../../../../tailwind.config';
 
@@ -30,21 +31,57 @@ const hexToRgba = (hex: string, alpha: number): string => {
 @Component({
   selector: 'app-type-chip',
   standalone: true,
+  imports: [TypeIconComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
+  host: {
+    '[style.display]': "size === 'filter' ? 'block' : null",
+    '[style.width]': "size === 'filter' ? '100%' : null",
+  },
   template: `
     <span
-      class="flex px-[6px] py-1 leading-none rounded-md text-ink border dark:text-bone font-display font-medium whitespace-nowrap text-xs"
-      [style.borderColor]="solid ? solidBorderColor : color"
-      [style.backgroundColor]="solid ? color : bgColorWithOpacity"
-      [style.color]="solid ? solidTextColor : null"
-      >{{ label }}</span
-    >
+      class="flex items-center leading-none rounded-md text-ink border dark:text-bone font-display font-medium whitespace-nowrap text-xs"
+      [class.w-full]="size === 'filter'"
+      [class.justify-center]="size === 'filter'"
+       [style.padding]="size === 'filter' ? '6px 4px' : '4px 6px'"
+       [style.fontSize]="size === 'filter' ? '0.75rem' : size === 'cover' ? '0.625rem' : null"
+       [style.borderColor]="
+         size === 'filter'
+           ? solid ? color : filterBorderColor
+           : solid ? solidBorderColor : color
+       "
+       [style.backgroundColor]="
+         size === 'filter'
+           ? solid ? bgColorWithOpacity : 'transparent'
+           : solid ? color : bgColorWithOpacity
+       "
+       [style.color]="
+         size === 'filter' && solid ? '#171513' : solid ? solidTextColor : null
+       "
+      >
+      @if (size === 'filter' || size === 'cover') {
+        <span
+          class="inline-flex items-center justify-center"
+          [style.gap.px]="size === 'cover' ? 4 : 6"
+        >
+          <app-type-icon
+            [type]="type"
+            variant="filter"
+            [iconSize]="size === 'cover' ? 'small' : 'normal'"
+          />
+          {{ label }}
+        </span>
+      } @else {
+        {{ label }}
+      }
+    </span>
   `,
 })
 export class TypeChipComponent {
   @Input({ required: true }) type: TrackType = 'track';
   @Input() solid = false;
+  @Input() size: 'default' | 'filter' | 'cover' = 'default';
   @Input() colorScheme: 'light' | 'dark' | null = null;
+  @Input() labelOverride: string | null = null;
 
   private languageService = inject(LanguageService);
 
@@ -53,6 +90,8 @@ export class TypeChipComponent {
   }
 
   get label() {
+    if (this.labelOverride !== null) return this.labelOverride;
+
     const translations = this.t;
     const labels: Partial<Record<TrackType, string>> = {
       track: translations.track,
@@ -65,12 +104,20 @@ export class TypeChipComponent {
   }
 
   get color() {
-    const isDark =
+    const colors = this.isDarkTheme ? COLORS_DARK : COLORS_LIGHT;
+    return colors[this.type];
+  }
+
+  get filterBorderColor() {
+    return this.isDarkTheme ? '#cdc5b7' : '#22201f';
+  }
+
+  private get isDarkTheme() {
+    return (
       this.colorScheme === 'dark' ||
       (this.colorScheme === null &&
-        document.documentElement.classList.contains('dark'));
-    const colors = isDark ? COLORS_DARK : COLORS_LIGHT;
-    return colors[this.type];
+        document.documentElement.classList.contains('dark'))
+    );
   }
 
   get bgColorWithOpacity() {

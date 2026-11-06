@@ -2,9 +2,13 @@ import {
   Component,
   computed,
   inject,
+  input,
   signal,
   ChangeDetectionStrategy,
   CUSTOM_ELEMENTS_SCHEMA,
+  ViewChild,
+  AfterViewInit,
+  output,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
@@ -42,6 +46,7 @@ import { SearchEmptyStateComponent } from '../../shared/components/search-empty-
 import { HorizontalScrollComponent } from '../../shared/components/horizontal-scroll/horizontal-scroll.component';
 import { ContextMenuPanelComponent } from '../../shared/components/context-menu-panel/context-menu-panel.component';
 import { ToastService } from '../../shared/components/toast/toast.component';
+import { ScrollMaskDirective } from '../../shared/directives/scroll-mask.directive';
 
 register();
 
@@ -62,6 +67,7 @@ register();
     SearchEmptyStateComponent,
     HorizontalScrollComponent,
     ContextMenuPanelComponent,
+    ScrollMaskDirective,
   ],
   styles: `
     :host {
@@ -72,14 +78,7 @@ register();
       flex: 1;
       overflow-y: auto;
       scrollbar-width: none;
-      padding: 4px 0 2rem;
-      mask-image: linear-gradient(
-        to bottom,
-        transparent 0%,
-        black 16px,
-        black 95%,
-        transparent 100%
-      );
+      padding: 4px 8px 2rem;
     }
     .scroll-fade::-webkit-scrollbar {
       display: none;
@@ -163,7 +162,7 @@ register();
         />
 
         <app-search-input
-          class="search-input"
+          class="search-input block h-10 shrink-0"
           [query]="query()"
           [placeholder]="t().searchPlaceholder"
           [clearLabel]="t().clear"
@@ -173,7 +172,7 @@ register();
 
         @if (query()) {
           <app-type-filter
-            class="type-filter"
+            class="type-filter -mt-3 w-full"
             [options]="typeFilterOptions()"
             [selectedTypes]="selectedTypes()"
             (toggle)="toggleType($event)"
@@ -183,7 +182,8 @@ register();
         @switch (state()) {
           @case ('loading') {
             <div
-              class="scroll-fade flex items-center justify-center min-h-[300px] transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)]"
+              class="scroll-fade -mt-1 flex items-center justify-center min-h-[300px] transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)]"
+              appScrollMask
             >
               <div
                 class="flex flex-col items-center gap-4 text-ink-600 dark:text-bone-600"
@@ -194,7 +194,10 @@ register();
             </div>
           }
           @case ('results') {
-            <div class="scroll-fade results-enter">
+            <div
+              class="scroll-fade -mt-1 results-enter"
+              appScrollMask
+            >
               @for (item of filteredResults(); track item.id; let i = $index) {
                 <div
                   class="select-none"
@@ -219,6 +222,7 @@ register();
           }
           @case ('empty') {
             <app-search-empty-state
+              class="-mt-1"
               variant="empty"
               [title]="t().noResults"
               [subtitle]="t().tryAnotherSearch"
@@ -226,6 +230,7 @@ register();
           }
           @default {
             <app-search-empty-state
+              class="-mt-1"
               variant="idle"
               [title]="t().startSearching"
               [subtitle]="t().searchSubtitle"
@@ -260,7 +265,7 @@ register();
     </div>
   `,
 })
-export class SearchComponent {
+export class SearchComponent implements AfterViewInit {
   private searchSvc = inject(SearchService);
   private wishlistSvc = inject(WishlistService);
   private favoriteArtistsSvc = inject(FavoriteArtistsService);
@@ -268,6 +273,11 @@ export class SearchComponent {
   private languageService = inject(LanguageService);
   private router = inject(Router);
   private toast = inject(ToastService);
+
+  @ViewChild(SearchInputComponent) private searchInput?: SearchInputComponent;
+
+  focusOnInit = input(false);
+  focusHandled = output<void>();
 
   contextMenu = signal<{ x: number; y: number; item: Track } | null>(null);
 
@@ -283,6 +293,13 @@ export class SearchComponent {
   loading = signal(false);
 
   favoriteArtists = this.favoriteArtistsSvc.artists;
+
+  ngAfterViewInit(): void {
+    if (this.focusOnInit()) {
+      this.searchInput?.focus();
+      this.focusHandled.emit();
+    }
+  }
 
   private results$ = toObservable(this.query).pipe(
     debounceTime(300),

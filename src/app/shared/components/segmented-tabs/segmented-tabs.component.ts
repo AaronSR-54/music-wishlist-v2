@@ -10,6 +10,9 @@ export interface SegmentedTabOption<T extends string = string> {
   value: T;
   label: string;
   prefix?: string;
+  suffix?: string;
+  title?: string;
+  disabled?: boolean;
 }
 
 @Component({
@@ -47,15 +50,26 @@ export interface SegmentedTabOption<T extends string = string> {
 
     <!-- toggle variant: compact pill style -->
     @if (variant() === 'toggle') {
-      <div class="p-1 bg-bone dark:bg-ink-200 rounded-pill md:flex-1">
+      <div
+        class="p-1 bg-bone dark:bg-ink-200 rounded-pill md:flex-1"
+        [class.w-full]="activeWide()"
+      >
         <div class="flex flex-row gap-1 rounded-pill overflow-hidden">
           @for (option of options(); track option.value) {
             <button
-              class="flex-1 py-1 font-body uppercase text-ink-200 dark:text-bone-600 rounded-md transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] hover:opacity-70 [&.active]:bg-ink-200 [&.active]:dark:bg-bone [&.active]:text-bone  [&.active]:dark:text-ink [&.active]:font-bold italic [&.active]:not-italic"
+              class="flex-1 py-1 font-body uppercase text-ink-200 dark:text-bone-600 rounded-md transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] [&.active]:bg-ink-200 [&.active]:dark:bg-bone [&.active]:text-bone  [&.active]:dark:text-ink [&.active]:font-bold italic [&.active]:not-italic"
               [class.active]="value() === option.value"
+              [style.flex-grow]="activeWide() && value() === option.value ? 2 : 1"
+              [class.opacity-40]="option.disabled"
+              [class.cursor-not-allowed]="option.disabled"
+              [disabled]="option.disabled ?? false"
+              [title]="option.title ?? option.label"
               (click)="valueChange.emit(option.value)"
             >
-              {{ option.label }}
+              <span class="whitespace-nowrap">{{ option.label }}</span>
+              @if (option.suffix) {
+                <span class="whitespace-nowrap font-light italic">{{ option.suffix }}</span>
+              }
             </button>
           }
         </div>
@@ -69,6 +83,8 @@ export interface SegmentedTabOption<T extends string = string> {
             <button
               class="flex-1 py-3 font-body uppercase italic text-ink-200 dark:text-bone-600 rounded-md transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] hover:opacity-70 [&.active]:bg-ink-200 [&.active]:dark:bg-bone-200 [&.active]:text-bone  [&.active]:dark:text-ink [&.active]:font-bold [&.active]:not-italic"
               [class.active]="value() === option.value"
+              [disabled]="option.disabled ?? false"
+              [title]="option.title ?? option.label"
               (click)="valueChange.emit(option.value)"
             >
               {{ option.label }}
@@ -83,6 +99,7 @@ export class SegmentedTabsComponent<T extends string = string> {
   options = input.required<SegmentedTabOption<T>[]>();
   value = input.required<T>();
   variant = input<'nav' | 'toggle' | 'list'>('toggle');
+  activeWide = input(false);
 
   valueChange = output<T>();
 }

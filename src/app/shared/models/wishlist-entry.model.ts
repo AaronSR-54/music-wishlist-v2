@@ -15,4 +15,6 @@ export interface WishlistEntry {
   artistId?: string;
   albumId?: string;
   albumName?: string;
+  /** Runtime-only ownership flag added when entries are merged for display. */
+  isOwner?: boolean;
 }

@@ -26,6 +26,11 @@ import { PageHeaderComponent } from '../../shared/components/page-header/page-he
 import { ContextMenuPanelComponent } from '../../shared/components/context-menu-panel/context-menu-panel.component';
 import { ToastService } from '../../shared/components/toast/toast.component';
 import { apiUrl } from '../../core/api/api-url';
+import {
+  SegmentedTabsComponent,
+  SegmentedTabOption,
+} from '../../shared/components/segmented-tabs/segmented-tabs.component';
+import { ScrollMaskDirective } from '../../shared/directives/scroll-mask.directive';
 
 @Component({
   selector: 'app-releases',
@@ -38,6 +43,8 @@ import { apiUrl } from '../../core/api/api-url';
     EmptyStateComponent,
     PageHeaderComponent,
     ContextMenuPanelComponent,
+    SegmentedTabsComponent,
+    ScrollMaskDirective,
   ],
   styles: `
     @keyframes scaleIn {
@@ -59,21 +66,9 @@ import { apiUrl } from '../../core/api/api-url';
       overflow: auto;
       scrollbar-width: none;
       height: 100%;
+      width: calc(100% + 32px);
+      margin-inline: -16px;
       padding: 24px 16px 2rem;
-      -webkit-mask-image: linear-gradient(
-        to bottom,
-        transparent 0%,
-        black 16px,
-        black 95%,
-        transparent 100%
-      );
-      mask-image: linear-gradient(
-        to bottom,
-        transparent 0%,
-        black 16px,
-        black 95%,
-        transparent 100%
-      );
     }
     .releases-grid::-webkit-scrollbar {
       display: none;
@@ -111,7 +106,7 @@ import { apiUrl } from '../../core/api/api-url';
     }
 
     <div
-      class="flex flex-col h-full overflow-hidden p-0.5 pt-2 gap-4 w-full [animation:fadeIn_300ms_ease_both]"
+      class="flex flex-col h-full p-0.5 pt-2 gap-4 w-full [animation:fadeIn_300ms_ease_both]"
     >
       <app-page-header prefix="01/" [title]="t().releases" [showBack]="false" [mobileOnly]="true" />
 
@@ -120,39 +115,14 @@ import { apiUrl } from '../../core/api/api-url';
         (touchstart)="onTouchStart($event)"
         (touchend)="onTouchEnd($event)"
       >
-        <div
-          class="flex items-center justify-center border-b-[1.5px] border-bone-100 dark:border-ink-100 [animation:slideDown_300ms_ease_both]"
-        >
-          <div
-            class="flex items-center justify-between gap-8 py-1 w-full md:w-80 md:mx-auto"
-          >
-            <button
-              class="w-8 h-8 border-none bg-transparent text-ink dark:text-bone cursor-pointer text-lg md:text-[1.375rem] font-semibold transition-[color,transform] duration-fast ease-smooth p-0 flex items-center justify-center hover:text-ink-100 dark:hover:text-bone-100 hover:scale-[1.15] active:scale-90 disabled:opacity-20 disabled:cursor-not-allowed disabled:pointer-events-none"
-              (click)="prevMonth()"
-              [title]="t().prevMonth"
-            >
-              &lt;
-            </button>
-            <span
-              class="font-display flex items-baseline justify-center gap-[2px] leading-none text-ink dark:text-bone min-w-[150px] text-center uppercase py-4 transition-opacity duration-[200ms] ease-[ease]"
-            >
-              <span class="font-semibold tracking-[0.04em] text-3xl">{{
-                monthLabel()
-              }}</span>
-              <span
-                class=" text-ink-700 dark:text-bone-700 text-3xl font-light italic"
-                >{{ yearLabel() }}</span
-              >
-            </span>
-            <button
-              class="w-8 h-8 border-none bg-transparent text-ink dark:text-bone cursor-pointer text-lg md:text-[1.375rem] font-semibold transition-[color,transform] duration-fast ease-smooth p-0 flex items-center justify-center hover:text-ink-100 dark:hover:text-bone-100 hover:scale-[1.15] active:scale-90 disabled:opacity-20 disabled:cursor-not-allowed disabled:pointer-events-none"
-              [disabled]="!canGoToNextMonth()"
-              (click)="nextMonth()"
-              [title]="t().nextMonth"
-            >
-              &gt;
-            </button>
-          </div>
+        <div class="w-full [animation:slideDown_300ms_ease_both]">
+          <app-segmented-tabs
+            variant="toggle"
+            [activeWide]="true"
+            [options]="monthOptions()"
+            [value]="selectedMonthKey()"
+            (valueChange)="selectMonth($event)"
+          />
         </div>
 
         @if (loading()) {
@@ -180,6 +150,7 @@ import { apiUrl } from '../../core/api/api-url';
         } @else {
           <div
             class="releases-grid transition-opacity duration-300"
+            appScrollMask
             [class.opacity-0]="animatingMonth()"
           >
             @for (
@@ -242,13 +213,43 @@ export class ReleasesComponent {
   private touchStartX = 0;
   private readonly SWIPE_THRESHOLD = 50;
 
-  monthNames = computed(() => [
-    this.t().jan, this.t().feb, this.t().mar, this.t().apr, this.t().may, this.t().jun,
-    this.t().jul, this.t().aug, this.t().sep, this.t().oct, this.t().nov, this.t().dec,
-  ]);
+  selectedMonthKey = computed(
+    () => `${this.selectedYear()}-${String(this.selectedMonth() + 1).padStart(2, '0')}`,
+  );
 
-  monthLabel = computed(() => this.monthNames()[this.selectedMonth()]);
-  yearLabel = computed(() => this.selectedYear().toString());
+  monthOptions = computed<SegmentedTabOption<string>[]>(() => {
+    const selectedYear = this.selectedYear();
+    const selectedMonth = this.selectedMonth();
+    const language = this.t().jan === 'Enero' ? 'es' : 'en';
+    const locale = language === 'es' ? 'es-ES' : 'en-US';
+    const monthFormatter = new Intl.DateTimeFormat(locale, { month: 'short' });
+    const fullMonthFormatter = new Intl.DateTimeFormat(locale, { month: 'long' });
+    const fullFormatter = new Intl.DateTimeFormat(locale, {
+      month: 'long',
+      year: 'numeric',
+    });
+    const now = new Date();
+
+    return [-1, 0, 1].map((offset) => {
+      const date = new Date(selectedYear, selectedMonth + offset, 1);
+      const year = date.getFullYear();
+      const month = date.getMonth();
+      const key = `${year}-${String(month + 1).padStart(2, '0')}`;
+      const isFuture =
+        year > now.getFullYear() ||
+        (year === now.getFullYear() && month > now.getMonth());
+      const label = monthFormatter.format(date).replace(/\.$/, '').toLocaleUpperCase(locale);
+      const fullMonth = fullMonthFormatter.format(date).toLocaleUpperCase(locale);
+
+      return {
+        value: key,
+        label: offset === 0 ? fullMonth : label,
+        suffix: offset === 0 || year !== selectedYear ? `'${String(year).slice(-2)}` : undefined,
+        title: fullFormatter.format(date),
+        disabled: isFuture,
+      };
+    });
+  });
 
   canGoToNextMonth = computed(() => {
     const now = new Date();
@@ -320,6 +321,14 @@ export class ReleasesComponent {
 
     this.selectedMonth.set(month);
     this.selectedYear.set(year);
+  }
+
+  selectMonth(key: string) {
+    const [year, month] = key.split('-').map(Number);
+    if (!Number.isFinite(year) || !Number.isFinite(month)) return;
+
+    this.selectedYear.set(year);
+    this.selectedMonth.set(month - 1);
   }
 
   isInWishlist(itemId: string): boolean {

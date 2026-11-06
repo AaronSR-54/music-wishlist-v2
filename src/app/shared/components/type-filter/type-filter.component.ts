@@ -5,6 +5,8 @@ import {
   ChangeDetectionStrategy,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { TypeChipComponent } from '../type-chip/type-chip.component';
+import { TrackType } from '../../models/track.model';
 
 export type FilterType = 'artist' | 'track' | 'album' | 'ep';
 
@@ -16,26 +18,32 @@ export interface TypeFilterOption<T extends string = FilterType> {
 @Component({
   selector: 'app-type-filter',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, TypeChipComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div
-      class="flex gap-2 overflow-x-auto [animation:slideDown_200ms_var(--ease)_both] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+      class="flex w-full gap-2 px-2 [animation:slideDown_200ms_var(--ease)_both]"
     >
-      @for (option of options(); track option.value) {
-        <button
-          class="px-3 py-1.5 rounded-[20px] border-[1.5px] border-ink-200 bg-transparent text-ink-100 dark:text-bone-600 font-display text-[0.8125rem] md:text-[1.0625rem] font-medium whitespace-nowrap cursor-pointer transition-[background,color,border-color] duration-fast ease-smooth hover:border-ink dark:hover:border-bone-600 hover:text-ink dark:hover:text-bone [&.active]:bg-ink [&.active]:border-ink [&.active]:text-bone [&.active]:dark:bg-bone [&.active]:dark:border-bone [&.active]:dark:text-ink"
-          [class.active]="selectedTypes().has(option.value)"
-          (click)="onToggle(option.value)"
-        >
-          {{ option.label }}
-        </button>
-      }
+        @for (option of options(); track option.value) {
+          <button
+            type="button"
+            class="inline-flex min-h-11 min-w-0 flex-1 items-center justify-center cursor-pointer rounded-md border-0 bg-transparent p-0 transition-transform active:scale-95 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-current"
+            [attr.aria-pressed]="selectedTypes().has(option.value)"
+            (click)="onToggle(option.value)"
+          >
+            <app-type-chip
+              [type]="option.value"
+              [labelOverride]="option.label"
+              size="filter"
+              [solid]="selectedTypes().has(option.value)"
+            />
+          </button>
+        }
     </div>
   `,
 })
-export class TypeFilterComponent<T extends string = FilterType> {
-  selectedTypes = input.required<Set<T>>();
+export class TypeFilterComponent<T extends FilterType = FilterType> {
+  selectedTypes = input.required<ReadonlySet<TrackType>>();
   options = input.required<TypeFilterOption<T>[]>();
 
   toggle = output<T>();

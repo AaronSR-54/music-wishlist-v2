@@ -33,6 +33,7 @@ import { LoadingSpinnerComponent } from '../../shared/components/loading-spinner
 import { ReleaseItem } from '../../shared/models/release-item.model';
 import { ContextMenuPanelComponent } from '../../shared/components/context-menu-panel/context-menu-panel.component';
 import { ToastService } from '../../shared/components/toast/toast.component';
+import { ScrollMaskDirective } from '../../shared/directives/scroll-mask.directive';
 
 interface AlbumDetail {
   id: string;
@@ -58,6 +59,7 @@ interface AlbumDetail {
     PageHeaderComponent,
     LoadingSpinnerComponent,
     ContextMenuPanelComponent,
+    ScrollMaskDirective,
   ],
   styles: `
     @keyframes popIn {
@@ -81,20 +83,6 @@ interface AlbumDetail {
       scrollbar-width: none;
       padding-bottom: 2rem;
       padding-top: 4px;
-      -webkit-mask-image: linear-gradient(
-        to bottom,
-        transparent 0%,
-        black 16px,
-        black 95%,
-        transparent 100%
-      );
-      mask-image: linear-gradient(
-        to bottom,
-        transparent 0%,
-        black 16px,
-        black 95%,
-        transparent 100%
-      );
     }
     .scroll-fade::-webkit-scrollbar {
       display: none;
@@ -136,7 +124,7 @@ interface AlbumDetail {
         (back)="goBack()"
       />
 
-      <div class="scroll-fade flex flex-col p-2 gap-12">
+      <div class="scroll-fade flex flex-col p-2 gap-12" appScrollMask>
         @if (loading()) {
           <app-loading-spinner [message]="t().loadingSongs" />
         } @else if (album(); as a) {
@@ -144,44 +132,44 @@ interface AlbumDetail {
             class="flex gap-2 max-md:flex-col max-md:items-center md:gap-8 max-md:text-center mt-4"
           >
             <div
-              class="shrink-0 w-[200px] h-[200px] rounded-md overflow-hidden max-md:w-3/4 max-md:h-auto max-md:aspect-square shadow-ink/5 shadow-lg album-cover"
+              class="relative shrink-0 w-[200px] h-[200px] rounded-md overflow-hidden max-md:w-3/4 max-md:h-auto max-md:aspect-square shadow-ink/5 shadow-lg album-cover"
             >
               <app-cover [name]="a.name" [coverUrl]="a.coverUrl" />
+              <div class="absolute right-2 top-2 origin-top-right max-md:scale-125">
+                <app-type-chip
+                  [type]="albumType()"
+                  [solid]="true"
+                  size="cover"
+                  colorScheme="dark"
+                />
+              </div>
+              @if (tracks().length > 1) {
+                <button
+                  appBtn
+                  variant="add"
+                  [added]="isAlbumInWishlist()"
+                  (click)="toggleWishlist()"
+                  class="absolute bottom-2 right-2 !w-10 !h-10 md:!w-12 md:!h-12 leading-none shadow-md border border-solid border-ink-200"
+                >
+                  @if (isAlbumInWishlist()) {
+                    <app-icon name="check" class="w-[18px] h-[18px] md:w-[22px] md:h-[22px]" />
+                  } @else {
+                    <app-icon name="plus" class="w-[18px] h-[18px] md:w-[22px] md:h-[22px]" />
+                  }
+                </button>
+              }
             </div>
 
             <div class="flex-1 flex flex-col justify-start album-info">
               <div class="flex flex-col text-ink dark:text-bone">
-                <div
-                  class="flex items-center gap-4 mb-2 md:mb-8 max-md:justify-center"
+                <h1
+                  class="m-0 text-2xl md:text-5xl font-bold font-display"
                 >
-                  <app-type-chip [type]="albumType()" />
-                </div>
-
-                <div class="flex items-center justify-center gap-4 md:gap-4">
-                  <h1
-                    class="m-0 text-2xl md:text-5xl font-bold font-display md:flex-1"
-                  >
-                    {{ a.name }}
-                  </h1>
-                  @if (tracks().length > 1) {
-                    <button
-                      appBtn
-                      variant="add"
-                      [added]="isAlbumInWishlist()"
-                      (click)="toggleWishlist()"
-                      class="hidden md:block leading-none"
-                    >
-                      @if (isAlbumInWishlist()) {
-                        <app-icon name="check" class="w-5 h-5" />
-                      } @else {
-                        <app-icon name="plus" class="w-5 h-5" />
-                      }
-                    </button>
-                  }
-                </div>
+                  {{ a.name }}
+                </h1>
 
                 <div
-                  class="flex items-center gap-2 max-md:justify-center mb-4 md:mb-0"
+                  class="flex items-center gap-2 max-md:justify-center mt-2 md:mt-0"
                 >
                   @if (a.artistId) {
                     <a
@@ -204,22 +192,6 @@ interface AlbumDetail {
                     {{ a.releaseDate | date: 'd MMM yyyy' }}
                   </span>
                 </div>
-
-                @if (tracks().length > 1) {
-                  <button
-                    appBtn
-                    variant="add"
-                    [added]="isAlbumInWishlist()"
-                    (click)="toggleWishlist()"
-                    class="md:hidden mx-auto leading-none"
-                  >
-                    @if (isAlbumInWishlist()) {
-                      <app-icon name="check" class="w-5 h-5 " />
-                    } @else {
-                      <app-icon name="plus" class="w-5 h-5 " />
-                    }
-                  </button>
-                }
               </div>
             </div>
           </div>

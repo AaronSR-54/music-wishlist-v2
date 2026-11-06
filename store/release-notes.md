@@ -1,12 +1,16 @@
 <es-ES>
-Novedades de la 0.25.12:
-• Las notificaciones de lanzamientos muestran la portada del álbum.
-• Añade un lanzamiento a la wishlist o ábrelo directamente desde la notificación.
-• Avisos agrupados y localizados en español e inglés.
+Novedades de la 0.31.0:
+• Rediseño de la ficha de artista: foto circular y seguidores/álbumes en una sola línea.
+• El tipo de lanzamiento y el botón de añadir a la wishlist viven ahora sobre la portada del álbum.
+• Los resultados de búsqueda y la wishlist muestran el tipo de cada portada, con botones más grandes y coherentes.
+• Lanzamientos: chip de tipo sobre la portada y acciones más cómodas de pulsar.
+• Listo: tus elementos y las listas compartidas se agrupan en secciones plegables.
 </es-ES>
 <en-US>
-What's new in 0.25.12:
-• Release notifications now show album cover art.
-• Add a release to your wishlist or open it directly from the notification.
-• Notifications are grouped and localized in English and Spanish.
+What's new in 0.31.0:
+• New artist page: circular artwork with followers and albums on a single line.
+• Release type and the add-to-wishlist button now sit on the album artwork.
+• Search results and wishlist show the type on each cover, with larger, consistent buttons.
+• Releases: type chip on the cover and easier-to-tap actions.
+• Ready items and shared lists are grouped into collapsible sections.
 </en-US>

@@ -49,7 +49,9 @@ import { LanguageService } from '../../../core/i18n/language.service';
           }
           @if (showRemove()) {
             <button
-              class="flex items-center gap-3 px-4 py-3 font-body text-sm text-ink italic rounded-md transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] bg-red-300 dark:bg-red-400 hover:font-bold hover:not-italic w-full text-left"
+              class="flex items-center gap-3 px-4 py-3 font-body text-sm text-ink italic rounded-md transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] bg-red-300 dark:bg-red-400 hover:font-bold hover:not-italic w-full text-left disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:font-normal"
+              [disabled]="removeDisabled()"
+              [title]="removeDisabled() ? t().sharedEntryCannotRemove : ''"
               (click)="handleRemove()"
             >
               <app-icon name="trash" class="w-4 h-4" />
@@ -92,7 +94,9 @@ import { LanguageService } from '../../../core/i18n/language.service';
           }
           @if (showRemove()) {
             <button
-              class="flex items-center gap-2 px-3 py-2 text-sm rounded-md font-body text-red-700 dark:text-red-400 italic text-left w-full transition-all duration-150 ease-out hover:bg-red-400 hover:dark:bg-red-400 hover:text-ink hover:dark:text-ink-900 hover:tracking-wide [text-shadow:0_0_0_transparent] hover:[text-shadow:0_0_0.25px_currentColor]"
+              class="flex items-center gap-2 px-3 py-2 text-sm rounded-md font-body text-red-700 dark:text-red-400 italic text-left w-full transition-all duration-150 ease-out hover:bg-red-400 hover:dark:bg-red-400 hover:text-ink hover:dark:text-ink-900 hover:tracking-wide [text-shadow:0_0_0_transparent] hover:[text-shadow:0_0_0.25px_currentColor] disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-transparent disabled:hover:text-red-700 dark:disabled:hover:text-red-400"
+              [disabled]="removeDisabled()"
+              [title]="removeDisabled() ? t().sharedEntryCannotRemove : ''"
               (click)="handleRemove()"
             >
               <app-icon name="trash" class="w-4 h-4" />
@@ -114,6 +118,7 @@ export class ContextMenuPanelComponent implements AfterViewInit {
 
   t = computed(() => this.languageService.t());
   showRemove = input(false);
+  removeDisabled = input(false);
   showArtist = input(false);
   showAlbum = input(false);
 

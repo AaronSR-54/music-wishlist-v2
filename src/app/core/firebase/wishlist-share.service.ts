@@ -28,9 +28,11 @@ export class WishlistShareService {
 
   private _sharesGiven = signal<WishlistShare[]>([]);
   private _sharesReceived = signal<WishlistShare[]>([]);
+  private _sharesReceivedLoaded = signal(false);
 
   sharesGiven = this._sharesGiven.asReadonly();
   sharesReceived = this._sharesReceived.asReadonly();
+  sharesReceivedLoaded = this._sharesReceivedLoaded.asReadonly();
 
   suggestedEmails = computed(() => [
     ...new Set(this._sharesGiven().map((s) => s.recipientEmail)),
@@ -47,6 +49,7 @@ export class WishlistShareService {
       this.isDemoMode = auth.demoMode();
 
       if (this.isDemoMode) {
+        this._sharesReceivedLoaded.set(true);
         return;
       }
 
@@ -76,6 +79,7 @@ export class WishlistShareService {
           (d) => ({ id: d.id, ...d.data() }) as WishlistShare,
         );
         this._sharesReceived.set(shares);
+        this._sharesReceivedLoaded.set(true);
       });
 
       this.unsubscribe = [unsubscribe1, unsubscribe2];
@@ -87,6 +91,7 @@ export class WishlistShareService {
     this.unsubscribe = [];
     this._sharesGiven.set([]);
     this._sharesReceived.set([]);
+    this._sharesReceivedLoaded.set(false);
   }
 
   async share(

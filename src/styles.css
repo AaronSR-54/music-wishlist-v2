@@ -10,6 +10,41 @@
   --accent-hover-artist: 99 69 31;
 }
 
+@property --scroll-mask-top {
+  syntax: '<length>';
+  inherits: false;
+  initial-value: 8px;
+}
+
+.scroll-mask {
+  --scroll-mask-top: 8px;
+  -webkit-mask-image: linear-gradient(
+    to bottom,
+    transparent 0%,
+    black var(--scroll-mask-top),
+    black 95%,
+    transparent 100%
+  );
+  mask-image: linear-gradient(
+    to bottom,
+    transparent 0%,
+    black var(--scroll-mask-top),
+    black 95%,
+    transparent 100%
+  );
+  transition: --scroll-mask-top 260ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.scroll-mask--scrolled {
+  --scroll-mask-top: 96px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .scroll-mask {
+    transition: none;
+  }
+}
+
 *,
 *::before,
 *::after {

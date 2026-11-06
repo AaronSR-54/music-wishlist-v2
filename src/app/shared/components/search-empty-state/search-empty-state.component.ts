@@ -5,13 +5,14 @@ import {
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { EmptyStateComponent } from '../empty-state/empty-state.component';
+import { ScrollMaskDirective } from '../../directives/scroll-mask.directive';
 
 export type SearchEmptyStateVariant = 'idle' | 'empty';
 
 @Component({
   selector: 'app-search-empty-state',
   standalone: true,
-  imports: [CommonModule, EmptyStateComponent],
+  imports: [CommonModule, EmptyStateComponent, ScrollMaskDirective],
   changeDetection: ChangeDetectionStrategy.OnPush,
   styles: `
     :host {
@@ -25,20 +26,13 @@ export type SearchEmptyStateVariant = 'idle' | 'empty';
       overflow-y: auto;
       scrollbar-width: none;
       padding: 4px 0 2rem;
-      mask-image: linear-gradient(
-        to bottom,
-        transparent 0%,
-        black 16px,
-        black 95%,
-        transparent 100%
-      );
     }
     .scroll-fade::-webkit-scrollbar {
       display: none;
     }
   `,
   template: `
-    <div class="scroll-fade">
+    <div class="scroll-fade" appScrollMask>
       @switch (variant()) {
         @case ('idle') {
           <app-empty-state
