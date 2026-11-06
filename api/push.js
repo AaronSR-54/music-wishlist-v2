@@ -190,7 +190,10 @@ async function sendFcm(accessToken, deviceToken, notification, data) {
         token: deviceToken,
         notification,
         data: toDataStrings(data),
-        android: { priority: 'high' },
+        android: {
+          priority: 'high',
+          notification: { channelId: 'releases', sound: 'default' },
+        },
       },
     }),
   });

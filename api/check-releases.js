@@ -100,7 +100,10 @@ async function sendFcm(accessToken, deviceToken, notification, data) {
         token: deviceToken,
         notification,
         data: toDataStrings(data),
-        android: { priority: 'high' },
+        android: {
+          priority: 'high',
+          notification: { channelId: 'releases', sound: 'default' },
+        },
       },
     }),
   });
@@ -304,7 +307,9 @@ function fromValue(v) {
 
 // ── Deezer ────────────────────────────────────────────────────
 
-const RELEASE_WINDOW_DAYS = Number(process.env.RELEASE_WINDOW_DAYS ?? 1);
+// Keep a two-day calendar window so a skipped/late daily cron can still pick
+// up a release on its next run. Sent album IDs are deduplicated per user below.
+const RELEASE_WINDOW_DAYS = Number(process.env.RELEASE_WINDOW_DAYS ?? 2);
 
 async function fetchArtistAlbums(artistId) {
   const res = await fetch(`https://api.deezer.com/artist/${artistId}/albums?limit=50`);
@@ -317,8 +322,17 @@ function isWithinWindow(releaseDateStr, days) {
   if (!releaseDateStr) return false;
   const releaseDate = new Date(releaseDateStr);
   if (isNaN(releaseDate.getTime())) return false;
-  const cutoff = new Date(Date.now() - days * 24 * 60 * 60 * 1000);
-  return releaseDate >= cutoff;
+
+  // Deezer provides release dates without a time. Treat the window as calendar
+  // days, not a rolling 24-hour period, so a release dated yesterday is still
+  // found by the daily 09:00 UTC cron.
+  const today = new Date();
+  today.setUTCHours(0, 0, 0, 0);
+  const releaseDay = new Date(releaseDate);
+  releaseDay.setUTCHours(0, 0, 0, 0);
+  const cutoff = today.getTime() - Math.max(0, days) * 24 * 60 * 60 * 1000;
+
+  return releaseDay.getTime() >= cutoff && releaseDay.getTime() <= today.getTime();
 }
 
 // ── Runner ────────────────────────────────────────────────────
@@ -386,7 +400,9 @@ async function run(uid, idToken, clientId) {
         return null;
       }
 
-      const cacheRef = `artist-releases-cache/${clientId}_${favorite.artistId}`;
+      // Cron runs use one clientId ('cron'). Include uid so a release sent to
+      // one user does not suppress the same artist's notification for others.
+      const cacheRef = `artist-releases-cache/${clientId}_${uid}_${favorite.artistId}`;
       const cacheDoc = await getDoc(cacheRef, idToken);
       const notifiedIds = cacheDoc ? (cacheDoc.fields?.albumIds?.arrayValue?.values ?? []).map((v) => v.stringValue).filter(Boolean) : [];
 
