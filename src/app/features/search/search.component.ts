@@ -169,6 +169,7 @@ register();
             [clearLabel]="t().clear"
             (queryChange)="onQuery($event)"
             (clear)="clearQuery()"
+            (focusChange)="inputFocused.set($event)"
           />
         </div>
 
@@ -239,7 +240,7 @@ register();
         }
       </section>
 
-      @if (!query() && favoriteArtists().length > 0) {
+      @if (!query() && !inputFocused() && favoriteArtists().length > 0) {
         <div
           class="py-3 pb-6 md:pb-0 border-t border-bone-100 dark:border-ink-100 favorites-section transition-all duration-500 ease-[cubic-bezier(0.4,0,0.2,1)]"
         >
@@ -286,6 +287,7 @@ export class SearchComponent implements AfterViewInit {
   focusHandled = output<void>();
 
   contextMenu = signal<{ x: number; y: number; item: Track } | null>(null);
+  inputFocused = signal(false);
 
   get isMobile(): boolean {
     return window.innerWidth < 1024;
