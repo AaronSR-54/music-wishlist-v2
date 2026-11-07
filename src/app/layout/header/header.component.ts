@@ -17,7 +17,7 @@ import { AvatarComponent } from '../../shared/components/avatar/avatar.component
   imports: [AvatarComponent],
   template: `
     <header
-      class="flex items-center justify-between h-16 px-6 shrink-0 gap-4 max-md:h-14 max-md:px-4"
+      class="flex items-center justify-between h-16 px-6 max-md:h-14 max-md:px-4 lg:px-3 shrink-0 gap-4"
     >
       <h1
         class="font-display text-2xl md:text-[1.75rem] font-bold leading-[0.8] m-0 tracking-[-0.03em] text-ink dark:text-bone"

@@ -60,15 +60,28 @@ type Tab = 'releases' | 'search' | 'wishlist';
       border-radius: 999px;
       background: rgba(255, 255, 255, 0.1);
     }
+    /* Shared max width for the desktop header and the content area. */
+    .desktop-container {
+      width: 100%;
+      margin-inline: auto;
+    }
+    @media (min-width: 1400px) {
+      .desktop-container {
+        width: calc(100% - 20%);
+        margin-inline: 10%;
+      }
+    }
   `,
   template: `
     @if (isDesktop()) {
     <!-- DESKTOP -->
     <div class="bg-bone-300 dark:bg-ink flex flex-col h-full safe-area-inset">
-      <app-header class="z-10" (openProfile)="goToProfile()" />
+      <div class="desktop-container z-10 shrink-0">
+        <app-header class="block" (openProfile)="goToProfile()" />
+      </div>
 
       <main
-        class="z-10 flex flex-1 overflow-hidden gap-16 p-3 w-full mx-auto min-[1400px]:mx-[10%] min-[1400px]:w-[calc(100%-20%)]"
+        class="desktop-container z-10 flex flex-1 overflow-hidden gap-16 p-3"
       >
         <aside class="mt-60 w-[300px] flex flex-col items-start">
           <app-segmented-tabs
