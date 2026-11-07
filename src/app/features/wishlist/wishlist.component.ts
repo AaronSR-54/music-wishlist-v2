@@ -471,7 +471,7 @@ type WishlistTab = 'pending' | 'downloaded';
               {{ t().cancel }}
             </button>
             <button
-              class="px-4 py-2 rounded-full bg-red-500 text-white text-sm font-bold uppercase tracking-wide hover:bg-red-600 active:scale-95 transition-all"
+              class="px-4 py-2 rounded-full bg-red-600 text-white text-sm font-bold uppercase tracking-wide hover:bg-red-700 active:scale-95 transition-all"
               (click)="confirmClear()"
             >
               {{ t().confirm }}

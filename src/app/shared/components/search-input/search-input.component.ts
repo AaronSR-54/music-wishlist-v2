@@ -22,7 +22,7 @@ import { IconComponent } from '../../icons/icon.component';
       >
         <app-icon
           name="search"
-          class="text-ink-800 dark:text-bone-800 w-6 md:w-7 h-6 md:h-7 shrink-0 group-focus-within:text-bone dark:group-focus-within:text-ink"
+          class="text-ink-800 dark:text-bone-700 w-6 md:w-7 h-6 md:h-7 shrink-0 group-focus-within:text-bone dark:group-focus-within:text-ink"
         />
         <input
           #searchField

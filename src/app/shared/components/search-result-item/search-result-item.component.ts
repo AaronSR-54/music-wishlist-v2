@@ -209,7 +209,7 @@ type WishlistEntryExtended = WishlistEntry & {
 
           @if (isWishlist()) {
             <span
-              class="text-[0.6875rem] md:text-sm text-ink-200 dark:text-bone-800 flex items-center gap-1 flex-wrap font-semibold leading-none"
+              class="text-[0.6875rem] md:text-sm text-ink-200 dark:text-bone-700 flex items-center gap-1 flex-wrap font-semibold leading-none"
             >
               @if (isShared()) {
                 <app-avatar

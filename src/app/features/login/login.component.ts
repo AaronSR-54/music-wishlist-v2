@@ -78,7 +78,7 @@ import { IconComponent } from '../../shared/icons/icon.component';
           {{ t().access }}
         </span>
         <span
-          class="text-ink-100 dark:text-bone-800 text-[11px] italic font-medium font-mono"
+          class="text-ink-100 dark:text-bone-700 text-[11px] italic font-medium font-mono"
           >v{{ version() }}</span
         >
       </header>

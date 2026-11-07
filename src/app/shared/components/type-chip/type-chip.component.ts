@@ -51,11 +51,11 @@ const hexToRgba = (hex: string, alpha: number): string => {
        "
        [style.backgroundColor]="
          size === 'filter'
-           ? solid ? bgColorWithOpacity : 'transparent'
+           ? solid ? filterSolidBackground : 'transparent'
            : solid ? color : bgColorWithOpacity
        "
        [style.color]="
-         size === 'filter' && solid ? '#171513' : solid ? solidTextColor : null
+         size === 'filter' && solid ? filterSolidTextColor : solid ? solidTextColor : null
        "
       >
       @if (size === 'filter' || size === 'cover') {
@@ -110,6 +110,14 @@ export class TypeChipComponent {
 
   get filterBorderColor() {
     return this.isDarkTheme ? '#cdc5b7' : '#22201f';
+  }
+
+  get filterSolidBackground() {
+    return hexToRgba(this.color, this.isDarkTheme ? 0.22 : 0.1);
+  }
+
+  get filterSolidTextColor() {
+    return this.isDarkTheme ? '#f9f8f6' : '#171513';
   }
 
   private get isDarkTheme() {

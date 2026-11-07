@@ -123,7 +123,7 @@ import { ScrollMaskDirective } from '../../shared/directives/scroll-mask.directi
             <!-- ACCOUNT -->
             <app-profile-account />
             <span
-              class="text-ink-100 dark:text-bone-800 text-[11px] italic font-medium font-mono cursor-pointer select-none active:scale-95 transition-transform"
+              class="text-ink-100 dark:text-bone-700 text-[11px] italic font-medium font-mono cursor-pointer select-none active:scale-95 transition-transform"
               (click)="onVersionTap()"
             >
               v{{ versionService.version() }}

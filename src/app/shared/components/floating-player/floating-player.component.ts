@@ -34,7 +34,7 @@ import { PreviewService } from '../../../core/services/preview.service';
         >
           {{ metadata()?.title }}
         </span>
-        <span class="text-xs text-ink-600 dark:text-bone-800 truncate w-full">
+        <span class="text-xs text-ink-600 dark:text-bone-700 truncate w-full">
           {{ metadata()?.artist }}
         </span>
       </div>

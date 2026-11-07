@@ -58,7 +58,7 @@ import { LanguageService } from '../../../core/i18n/language.service';
           <button
             (click)="confirmDelete()"
             [disabled]="deleting()"
-            class="flex-1 py-3 rounded-lg bg-red-600 text-bone font-bold uppercase cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
+            class="flex-1 py-3 rounded-lg bg-red-600 text-bone-100 font-bold uppercase cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
           >
             {{ deleting() ? t().deletingAccount : t().deleteAccountConfirm }}
           </button>

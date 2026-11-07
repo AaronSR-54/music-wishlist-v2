@@ -32,7 +32,7 @@ import { LanguageService } from '../../../core/i18n/language.service';
           [(ngModel)]="emailInput"
           (keyup.enter)="selectEmail(emailInput())"
           [disabled]="disabled()"
-          class="w-full px-2 rounded-sm bg-transparent text-ink dark:text-bone font-body text-lg placeholder:text-bone-800 placeholder:italic transition-colors duration-base border-none outline-none"
+          class="w-full px-2 rounded-sm bg-transparent text-ink dark:text-bone font-body text-lg placeholder:text-bone-800 dark:placeholder:text-bone-700 placeholder:italic transition-colors duration-base border-none outline-none"
         />
         <button
           (click)="selectEmail(emailInput())"
