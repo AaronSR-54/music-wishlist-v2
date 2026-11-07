@@ -50,7 +50,7 @@ type Language = 'es' | 'en';
           </button>
 
           <app-segmented-tabs
-            class="hidden md:flex flex-1"
+            class="hidden md:flex flex-1 md:max-w-md"
             variant="toggle"
             [options]="tabOptions()"
             [value]="defaultTab()"
@@ -71,7 +71,7 @@ type Language = 'es' | 'en';
           </button>
 
           <app-segmented-tabs
-            class="hidden md:flex flex-1"
+            class="hidden md:flex flex-1 md:max-w-md"
             variant="toggle"
             [options]="themeOptions()"
             [value]="currentTheme()"
@@ -92,7 +92,7 @@ type Language = 'es' | 'en';
           </button>
 
           <app-segmented-tabs
-            class="hidden md:flex flex-1"
+            class="hidden md:flex flex-1 md:max-w-md"
             variant="toggle"
             [options]="langOptions()"
             [value]="currentLanguage()"

@@ -23,12 +23,17 @@ export type SearchEmptyStateVariant = 'idle' | 'empty';
     }
     .scroll-fade {
       flex: 1;
+      display: flex;
+      flex-direction: column;
       overflow-y: auto;
       scrollbar-width: none;
       padding: 4px 0 2rem;
     }
     .scroll-fade::-webkit-scrollbar {
       display: none;
+    }
+    .scroll-fade app-empty-state {
+      flex: 1;
     }
   `,
   template: `

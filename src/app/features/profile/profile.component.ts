@@ -73,7 +73,7 @@ import { ScrollMaskDirective } from '../../shared/directives/scroll-mask.directi
 
       @if (auth.currentUser(); as user) {
         <div
-          class="py-8 px-4 md:p-8 min-h-full w-full max-w-7xl gap-8 flex flex-col justify-between mx-auto overflow-auto [scrollbar-width:none]"
+          class="py-8 px-4 md:p-8 min-h-full w-full max-w-6xl gap-8 flex flex-col justify-between mx-auto overflow-auto [scrollbar-width:none]"
           appScrollMask
         >
           <section class="flex flex-col gap-12">

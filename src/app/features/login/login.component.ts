@@ -99,7 +99,7 @@ import { IconComponent } from '../../shared/icons/icon.component';
       </main>
 
       <footer
-        class="flex flex-col gap-4 pt-6"
+        class="flex flex-col gap-4 pt-6 md:max-w-md"
         style="animation: slideUp 650ms cubic-bezier(0.16,1,0.3,1) both; animation-delay: 280ms"
       >
         <span

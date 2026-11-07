@@ -42,6 +42,7 @@ import { ToastService } from '../../../shared/components/toast/toast.component';
 
           <!-- Input de email autocomplete -->
           <app-email-autocomplete
+            class="block md:max-w-md"
             (emailSelected)="shareWith($event)"
             [disabled]="loading()"
           />

@@ -22,7 +22,7 @@ export interface TypeFilterOption<T extends string = FilterType> {
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div
-      class="flex w-full gap-2 px-2 [animation:slideDown_200ms_var(--ease)_both]"
+      class="flex w-full gap-2 px-2 md:max-w-[480px] [animation:slideDown_200ms_var(--ease)_both]"
     >
         @for (option of options(); track option.value) {
           <button

@@ -114,7 +114,7 @@ type WishlistTab = 'pending' | 'downloaded';
         [badge]="wishlistSvc.total() + ' ' + t().elements"
       />
 
-      <div class="[animation:slideDown_300ms_ease_both]">
+      <div class="md:max-w-[440px] [animation:slideDown_300ms_ease_both]">
         <app-segmented-tabs
           variant="toggle"
           [options]="tabs()"

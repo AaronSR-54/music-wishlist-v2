@@ -73,7 +73,7 @@ import { ScrollMaskDirective } from '../../shared/directives/scroll-mask.directi
     .releases-grid::-webkit-scrollbar {
       display: none;
     }
-    @media (min-width: 1100px) and (max-width: 1623px) {
+    @media (min-width: 1024px) and (max-width: 1623px) {
       .releases-grid {
         grid-template-columns: repeat(3, minmax(0, 1fr));
       }
@@ -115,7 +115,7 @@ import { ScrollMaskDirective } from '../../shared/directives/scroll-mask.directi
         (touchstart)="onTouchStart($event)"
         (touchend)="onTouchEnd($event)"
       >
-        <div class="w-full [animation:slideDown_300ms_ease_both]">
+        <div class="w-full md:max-w-[440px] [animation:slideDown_300ms_ease_both]">
           <app-segmented-tabs
             variant="toggle"
             [activeWide]="true"
@@ -127,7 +127,7 @@ import { ScrollMaskDirective } from '../../shared/directives/scroll-mask.directi
 
         @if (loading()) {
           <div
-            class="flex flex-col items-center justify-center gap-4 min-h-[300px] py-10 px-5 text-ink-600 dark:text-bone-600 text-center [animation:fadeIn_300ms_ease_both]"
+            class="flex flex-1 flex-col items-center justify-center gap-4 min-h-[300px] py-10 px-5 text-ink-600 dark:text-bone-600 text-center [animation:fadeIn_300ms_ease_both]"
           >
             <app-spinner size="md" />
             <span
@@ -137,6 +137,7 @@ import { ScrollMaskDirective } from '../../shared/directives/scroll-mask.directi
           </div>
         } @else if (allReleases().length === 0) {
           <app-empty-state
+            class="flex-1"
             [icon]="favorites().length === 0 ? 'heart' : 'music-note'"
             [title]="
               favorites().length === 0 ? t().noFavoriteArtists : t().noReleasesThisMonth

@@ -21,7 +21,9 @@ import {
   catchError,
   of,
   tap,
+  map,
 } from 'rxjs';
+import { BreakpointObserver } from '@angular/cdk/layout';
 
 import { register } from 'swiper/element/bundle';
 
@@ -250,6 +252,7 @@ register();
             {{ t().favoriteArtists }}
           </h3>
           <app-carousel
+            [preferredItemWidth]="carouselPreferredWidth()"
             [itemSpacing]="8"
             [leadingPadding]="8"
             [trailingPadding]="0"
@@ -280,6 +283,7 @@ export class SearchComponent implements AfterViewInit {
   private languageService = inject(LanguageService);
   private router = inject(Router);
   private toast = inject(ToastService);
+  private breakpointObserver = inject(BreakpointObserver);
 
   @ViewChild(SearchInputComponent) private searchInput?: SearchInputComponent;
 
@@ -301,6 +305,20 @@ export class SearchComponent implements AfterViewInit {
   loading = signal(false);
 
   favoriteArtists = this.favoriteArtistsSvc.artists;
+
+  /**
+   * The multi-browse carousel scales its large item to the container width, which makes the
+   * favorite artists covers enormous on desktop. Capping the preferred width keeps them as a
+   * compact strip (around 150px) while mobile continues to use the viewport-relative size.
+   */
+  private isDesktop = toSignal(
+    this.breakpointObserver
+      .observe('(min-width: 1024px)')
+      .pipe(map((r) => r.matches)),
+    { initialValue: window.matchMedia('(min-width: 1024px)').matches },
+  );
+
+  carouselPreferredWidth = computed(() => (this.isDesktop() ? 150 : 0));
 
   ngAfterViewInit(): void {
     if (this.focusOnInit()) {
