@@ -76,12 +76,12 @@ type Tab = 'releases' | 'search' | 'wishlist';
     @if (isDesktop()) {
     <!-- DESKTOP -->
     <div class="bg-bone-300 dark:bg-ink flex flex-col h-full safe-area-inset">
-      <div class="desktop-container z-10 shrink-0">
+      <div class="desktop-container z-10 shrink-0 lg:pl-14 min-[1400px]:pl-0">
         <app-header class="block" (openProfile)="goToProfile()" />
       </div>
 
       <main
-        class="desktop-container z-10 flex flex-1 overflow-hidden gap-16 p-3"
+        class="desktop-container z-10 flex flex-1 gap-16 p-3 lg:pl-[68px] min-[1400px]:pl-3"
       >
         <aside class="mt-60 w-[300px] flex flex-col items-start">
           <app-segmented-tabs

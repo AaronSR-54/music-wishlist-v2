@@ -26,14 +26,14 @@ export interface SegmentedTabOption<T extends string = string> {
       <div class="flex flex-col">
         @for (option of options(); track option.value) {
           <button
-            class="inline-flex gap-2 text-ink-700 dark:text-bone-700 text-[28px] font-light italic font-display cursor-pointer uppercase border-none bg-transparent p-0 transition-[transform,opacity] duration-200 ease-[cubic-bezier(0.4,0,0.2,1)] hover:opacity-80"
+            class="relative inline-flex gap-2 text-ink-700 dark:text-bone-700 text-[28px] font-light italic font-display cursor-pointer uppercase border-none bg-transparent p-0 transition-[transform,opacity] duration-200 ease-[cubic-bezier(0.4,0,0.2,1)] hover:opacity-80"
             [style.transform]="value() === option.value ? 'translateX(4px)' : 'translateX(0)'"
             [class.active]="value() === option.value"
             (click)="valueChange.emit(option.value)"
           >
             @if (option.prefix) {
               <span
-                class="w-14 text-right transition-[opacity,color] duration-200 ease-[cubic-bezier(0.4,0,0.2,1)]"
+                class="w-14 text-right transition-[opacity,color] duration-200 ease-[cubic-bezier(0.4,0,0.2,1)] lg:absolute lg:right-full lg:mr-3"
                 [class.opacity-0]="value() !== option.value"
                 >{{ option.prefix }}</span
               >
