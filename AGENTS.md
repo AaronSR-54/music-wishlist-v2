@@ -15,9 +15,9 @@ npm run store:feature      # Play listing: regenerate the 1024x500 feature graph
 
 ## Versioning
 
-**MANDATORY: every change MUST bump the version in `package.json`.** No change is considered complete until `package.json` `version` has been incremented — this includes changes that did not originate from a commit or that are not yet committed. Never leave the version untouched after editing code.
+**Do not bump the version automatically.** The version in `package.json` is bumped **only when the user explicitly asks for it**. That request happens at a release boundary: after a production deploy, or when shipping a new mobile (Android) version. Never change `package.json` `version` on your own initiative, and never bump it just because you made a change or are about to commit.
 
-The version follows the SemVer pattern `major-minor-micro` (`X.Y.Z`), bumped according to the kind of change:
+When the user does ask, the version follows the SemVer pattern `major-minor-micro` (`X.Y.Z`), bumped according to the kind of change:
 
 | Change type | Number to bump | Example |
 |-------------|---------------|---------|
@@ -28,7 +28,7 @@ The version follows the SemVer pattern `major-minor-micro` (`X.Y.Z`), bumped acc
 Rules:
 - Bump the highest-order number that applies and **reset every lesser number to `0`** (minor bump `0.10.0` → `0.11.0`; major bump `0.10.0` → `1.0.0`).
 - When several changes are grouped, use the most significant change type for the bump.
-- If you are about to commit and the version was not bumped during the change, bump it as part of that commit.
+- Only bump when the user requests it (post-prod-deploy or new mobile release); otherwise leave `version` untouched.
 - `scripts/generate-version.js` writes `src/version.json` from `package.json` on `prebuild`/`prestart`, so never edit `src/version.json` manually.
 
 ## Architecture
