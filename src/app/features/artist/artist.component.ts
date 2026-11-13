@@ -4,15 +4,21 @@ import {
   OnInit,
   signal,
   computed,
+  effect,
   ChangeDetectionStrategy,
   DestroyRef,
+  ViewChild,
 } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { Location, CommonModule } from '@angular/common';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { forkJoin, of } from 'rxjs';
+import { catchError } from 'rxjs/operators';
 import { SearchService } from '../../core/api/search.service';
 import { WishlistService } from '../../core/firebase/wishlist.service';
 import { FavoriteArtistsService } from '../../core/firebase/favorite-artists.service';
+import { ArtistMergeService } from '../../core/firebase/artist-merge.service';
+import { ArtistImageService } from '../../core/firebase/artist-image.service';
 import { AuthService } from '../../core/auth/auth.service';
 import { PreviewService } from '../../core/services/preview.service';
 import { Track } from '../../shared/models/track.model';
@@ -30,6 +36,10 @@ import { ContextMenuPanelComponent } from '../../shared/components/context-menu-
 import { ToastService } from '../../shared/components/toast/toast.component';
 import { SuperuserService } from '../../core/superuser/superuser.service';
 import { ScrollMaskDirective } from '../../shared/directives/scroll-mask.directive';
+import { catalogExportLine, catalogExternalUrl } from '../../shared/utils/catalog-link';
+import { ModalComponent } from '../../shared/components/modal/modal.component';
+import { ArtistMergePickerComponent } from '../../shared/components/artist-merge-picker/artist-merge-picker.component';
+import { ArtistPhotoEditorComponent } from '../../shared/components/artist-photo-editor/artist-photo-editor.component';
 
 @Component({
   selector: 'app-artist',
@@ -45,6 +55,9 @@ import { ScrollMaskDirective } from '../../shared/directives/scroll-mask.directi
     ButtonComponent,
     ContextMenuPanelComponent,
     ScrollMaskDirective,
+    ModalComponent,
+    ArtistMergePickerComponent,
+    ArtistPhotoEditorComponent,
   ],
   styles: `
     @keyframes popIn {
@@ -129,12 +142,31 @@ import { ScrollMaskDirective } from '../../shared/directives/scroll-mask.directi
       />
 
       <div class="scroll-fade flex flex-col p-2 gap-8 lg:gap-16" appScrollMask>
+        @if (notFound()) {
+          <div class="flex flex-col items-center gap-3 py-16 text-ink-500 dark:text-bone-500">
+            <p class="font-display text-lg">{{ t().noResults }}</p>
+          </div>
+        }
         <div class="flex items-center gap-4 lg:gap-8 mt-4">
-          <div
-            class="shrink-0 w-[112px] h-[112px] lg:w-[168px] lg:h-[168px] rounded-full overflow-hidden shadow-ink/5 shadow-lg artist-cover"
-          >
-            @if (artist(); as a) {
-              <app-cover [name]="a.name" [coverUrl]="a.picture_big" />
+          <div class="relative shrink-0 artist-cover">
+            <div
+              class="w-[112px] h-[112px] lg:w-[168px] lg:h-[168px] rounded-full overflow-hidden shadow-ink/5 shadow-lg"
+            >
+              @if (artist(); as a) {
+                <app-cover [name]="a.name" [coverUrl]="artistCoverUrl()" />
+              }
+            </div>
+
+            @if (artist()) {
+              <button
+                type="button"
+                class="absolute bottom-0 right-0 z-10 flex items-center justify-center w-9 h-9 lg:w-11 lg:h-11 rounded-full border-none bg-ink text-bone dark:bg-bone dark:text-ink shadow-lg cursor-pointer transition-transform duration-base ease-smooth hover:scale-[1.06] active:scale-[0.9]"
+                (click)="openPhotoModal()"
+                [title]="t().changePhoto"
+                [attr.aria-label]="t().changePhoto"
+              >
+                <app-icon name="edit" class="w-4 h-4 lg:w-5 lg:h-5" />
+              </button>
             }
           </div>
 
@@ -162,15 +194,23 @@ import { ScrollMaskDirective } from '../../shared/directives/scroll-mask.directi
                     <app-icon name="heart" class="w-8 h-8 lg:w-12 lg:h-12" />
                   }
                 </button>
+                <button
+                  class="w-9 h-9 lg:w-12 lg:h-12 rounded-full cursor-pointer flex items-center justify-center text-ink-600 dark:text-bone-600 shrink-0 bg-transparent p-0 transition-[color,transform] duration-fast ease-smooth hover:scale-[1.05] active:scale-[0.88]"
+                  (click)="openMergeModal()"
+                  [title]="t().mergeArtists"
+                  [attr.aria-label]="t().mergeArtists"
+                >
+                  <app-icon name="link" class="w-6 h-6 lg:w-8 lg:h-8" />
+                </button>
               </div>
 
               <div
                 class="flex flex-col items-start gap-0 text-ink dark:text-bone artist-meta leading-none"
               >
-                @if (a.nb_fan !== undefined) {
+                @if (a.fanCount !== undefined) {
                   <span class="flex items-baseline gap-[2px]">
                     <span class="text-xs lg:text-sm font-bold">{{
-                      formatFans(a.nb_fan)
+                      formatFans(a.fanCount)
                     }}</span>
                     <span
                       class="font-display italic text-[0.6875rem] lg:text-sm text-ink-700 dark:text-bone-700 uppercase tracking-[0.5px]"
@@ -178,10 +218,10 @@ import { ScrollMaskDirective } from '../../shared/directives/scroll-mask.directi
                     >
                   </span>
                 }
-                @if (a.nb_album !== undefined) {
+                @if (a.albumCount !== undefined) {
                   <span class="flex items-baseline gap-[2px]">
                     <span class="text-xs lg:text-sm font-bold">{{
-                      a.nb_album
+                      a.albumCount
                     }}</span>
                     <span
                       class="font-display italic text-[0.6875rem] lg:text-sm text-ink-700 dark:text-bone-700 uppercase tracking-[0.5px]"
@@ -190,6 +230,31 @@ import { ScrollMaskDirective } from '../../shared/directives/scroll-mask.directi
                   </span>
                 }
               </div>
+
+              @if (mergedAliasNames().length > 0) {
+                <div
+                  class="flex flex-wrap items-center gap-x-2 gap-y-1 text-[0.6875rem] lg:text-xs text-ink-600 dark:text-bone-600"
+                >
+                  <span
+                    class="font-semibold uppercase tracking-[0.12em] text-ink-700 dark:text-bone-700"
+                  >
+                    {{ t().mergedWith }}
+                  </span>
+                  @for (name of mergedAliasNames(); track name) {
+                    <span
+                      class="rounded-full bg-bone-100 dark:bg-ink-100 px-2 py-0.5"
+                      >{{ name }}</span
+                    >
+                  }
+                  <button
+                    type="button"
+                    class="underline underline-offset-2 hover:text-ink dark:hover:text-bone cursor-pointer bg-transparent border-0 p-0"
+                    (click)="unmergeAll()"
+                  >
+                    {{ t().unmerge }}
+                  </button>
+                </div>
+              }
             }
           </div>
         </div>
@@ -326,6 +391,38 @@ import { ScrollMaskDirective } from '../../shared/directives/scroll-mask.directi
           }
         }
       </div>
+
+      <app-modal
+        #mergeModal
+        [title]="t().mergeArtists"
+        (onClose)="closeMergeModal()"
+      >
+        @if (artist(); as a) {
+          <app-artist-merge-picker
+            [artist]="{ artistId: a.id, name: a.name }"
+            [excludedIds]="mergedAliasIds()"
+            (onPick)="mergeArtist($event)"
+            (onCancel)="closeMergeModal()"
+          />
+        }
+      </app-modal>
+
+      <app-modal
+        #photoModal
+        [title]="t().artistPhoto"
+        (onClose)="closePhotoModal()"
+      >
+        @if (artist(); as a) {
+          <app-artist-photo-editor
+            [artist]="{ artistId: a.id, name: a.name }"
+            [currentImage]="artistCoverUrl()"
+            [hasOverride]="hasCustomPhoto()"
+            (onSave)="saveArtistPhoto($event)"
+            (onReset)="resetArtistPhoto()"
+            (onCancel)="closePhotoModal()"
+          />
+        }
+      </app-modal>
     </div>
   `,
 })
@@ -336,6 +433,8 @@ export class ArtistComponent implements OnInit {
   private searchSvc = inject(SearchService);
   private wishlistSvc = inject(WishlistService);
   private favoriteArtistsSvc = inject(FavoriteArtistsService);
+  private artistMergeSvc = inject(ArtistMergeService);
+  private artistImageSvc = inject(ArtistImageService);
   private authSvc = inject(AuthService);
   private previewSvc = inject(PreviewService);
   private languageService = inject(LanguageService);
@@ -344,7 +443,13 @@ export class ArtistComponent implements OnInit {
   private toast = inject(ToastService);
   superuser = inject(SuperuserService);
 
+  @ViewChild('mergeModal') private mergeModal?: ModalComponent;
+  @ViewChild(ArtistMergePickerComponent)
+  private mergePicker?: ArtistMergePickerComponent;
+  @ViewChild('photoModal') private photoModal?: ModalComponent;
+
   contextMenu = signal<{ x: number; y: number; item: Track | ReleaseItem; kind: 'track' | 'release' } | null>(null);
+  private currentArtistId = signal<string | null>(null);
 
   get isMobile(): boolean {
     return window.innerWidth < 1024;
@@ -359,6 +464,7 @@ export class ArtistComponent implements OnInit {
   singles = signal<ReleaseItem[]>([]);
   loading = signal(true);
   loadingReleases = signal(false);
+  notFound = signal(false);
 
   releaseSections = computed(() =>
     [
@@ -370,20 +476,63 @@ export class ArtistComponent implements OnInit {
 
   allReleasesForExport = computed(() => this.releaseSections().flatMap((s) => s.items));
 
+  private mergedAliases = computed(() => {
+    const current = this.artist();
+    if (!current) return [];
+    return this.artistMergeSvc
+      .groupMembers(current.id)
+      .filter((member) => !member.isPrimary);
+  });
+
+  mergedAliasNames = computed(() => this.mergedAliases().map((m) => m.name));
+  mergedAliasIds = computed(() => this.mergedAliases().map((m) => m.artistId));
+
+  /** A user-picked photo wins over the one Deezer returns. */
+  artistCoverUrl = computed(() => {
+    const current = this.artist();
+    if (!current) return '';
+    return this.artistImageSvc.resolve(current.id, current.coverUrl);
+  });
+
+  hasCustomPhoto = computed(() => {
+    const current = this.artist();
+    return !!current && this.artistImageSvc.hasOverride(current.id);
+  });
+
+  constructor() {
+    // Reload when the merge set arrives or changes, so a page opened before
+    // Firestore answered still ends up with the combined artist.
+    effect(() => {
+      this.artistMergeSvc.merges();
+      const artistId = this.currentArtistId();
+      if (artistId) this.loadArtist(artistId);
+    });
+  }
+
   ngOnInit() {
     this.route.paramMap
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe((params) => {
         const artistId = params.get('id');
-        if (artistId) {
-          this.loadArtist(artistId);
-        }
+        if (artistId) this.currentArtistId.set(artistId);
       });
   }
 
   private loadArtist(artistId: string) {
-    if (this.artistCacheSvc.has(artistId)) {
-      const cached = this.artistCacheSvc.get(artistId)!;
+    const rootId = this.artistMergeSvc.resolveId(artistId);
+
+    // An alias always opens the canonical page, so the header, favorites and
+    // releases are the same no matter which profile the user landed on.
+    if (rootId !== artistId) {
+      this.router.navigate(['/artist', rootId], { replaceUrl: true });
+      return;
+    }
+
+    const groupIds = this.artistMergeSvc.groupIds(rootId);
+    const cacheKey = `${rootId}|${groupIds.join(',')}`;
+
+    if (this.artistCacheSvc.has(cacheKey)) {
+      const cached = this.artistCacheSvc.get(cacheKey)!;
       this.artist.set(cached.artist);
       this.tracks.set(cached.tracks);
       this.albums.set(cached.albums);
@@ -396,6 +545,7 @@ export class ArtistComponent implements OnInit {
 
     this.loading.set(true);
     this.loadingReleases.set(true);
+    this.notFound.set(false);
 
     const cacheEntry: {
       artist: any;
@@ -406,47 +556,161 @@ export class ArtistComponent implements OnInit {
     } = { artist: null, tracks: [], albums: [], eps: [], singles: [] };
 
     this.searchSvc
-      .getArtist(artistId)
-      .pipe(takeUntilDestroyed(this.destroyRef))
-      .subscribe((artist) => {
-        this.artist.set(artist);
-        cacheEntry.artist = artist;
-        const artistName = artist?.name ?? '';
-
-        this.searchSvc
-          .getArtistReleases(artistId, artistName)
-          .pipe(takeUntilDestroyed(this.destroyRef))
-          .subscribe({
-            next: (releases) => {
-              const albums = releases.filter((r) => r.type === 'album');
-              const eps = releases.filter((r) => r.type === 'ep');
-              const singles = releases.filter((r) => r.type === 'single');
-
-              this.albums.set(albums);
-              this.eps.set(eps);
-              this.singles.set(singles);
-              cacheEntry.albums = albums;
-              cacheEntry.eps = eps;
-              cacheEntry.singles = singles;
-              this.loadingReleases.set(false);
-              this.artistCacheSvc.set(artistId, cacheEntry);
-            },
-            error: () => this.loadingReleases.set(false),
-          });
-      });
-
-    this.searchSvc
-      .getArtistTracks(artistId, 5)
+      .getArtist(rootId)
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
-        next: (tracks) => {
+        next: (artistInfo) => {
+          if (!artistInfo) {
+            this.notFound.set(true);
+            this.loading.set(false);
+            this.loadingReleases.set(false);
+            return;
+          }
+          this.artist.set(artistInfo);
+          cacheEntry.artist = artistInfo;
+
+          const releases$ = groupIds.map((id) =>
+            this.searchSvc
+              .getArtistReleases(id, this.artistMergeSvc.nameOf(id) || artistInfo.name)
+              .pipe(catchError(() => of([] as ReleaseItem[]))),
+          );
+
+          forkJoin(releases$)
+            .pipe(takeUntilDestroyed(this.destroyRef))
+            .subscribe({
+              next: (groups) => {
+                const seen = new Set<string>();
+                const releases = groups
+                  .flat()
+                  .filter((release) => {
+                    const key = `${release.id}:${release.type}`;
+                    if (seen.has(key)) return false;
+                    seen.add(key);
+                    return true;
+                  })
+                  .sort(
+                    (a, b) =>
+                      this.releaseTime(b.releaseDate) -
+                      this.releaseTime(a.releaseDate),
+                  );
+
+                const albums = releases.filter((r) => r.type === 'album');
+                const eps = releases.filter((r) => r.type === 'ep');
+                const singles = releases.filter((r) => r.type === 'single');
+
+                this.albums.set(albums);
+                this.eps.set(eps);
+                this.singles.set(singles);
+                cacheEntry.albums = albums;
+                cacheEntry.eps = eps;
+                cacheEntry.singles = singles;
+                this.loadingReleases.set(false);
+                this.artistCacheSvc.set(cacheKey, cacheEntry);
+              },
+              error: () => this.loadingReleases.set(false),
+            });
+        },
+        error: () => {
+          this.notFound.set(true);
+          this.loading.set(false);
+          this.loadingReleases.set(false);
+        },
+      });
+
+    const tracks$ = groupIds.map((id) =>
+      this.searchSvc
+        .getArtistTracks(id, 5)
+        .pipe(catchError(() => of([] as Track[]))),
+    );
+
+    forkJoin(tracks$)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (groups) => {
+          const seen = new Set<string>();
+          const tracks = groups
+            .flat()
+            .filter((track) => {
+              if (seen.has(track.id)) return false;
+              seen.add(track.id);
+              return true;
+            })
+            .slice(0, 10);
+
           this.tracks.set(tracks);
           cacheEntry.tracks = tracks;
           this.loading.set(false);
-          this.artistCacheSvc.set(artistId, cacheEntry);
+          this.artistCacheSvc.set(cacheKey, cacheEntry);
         },
         error: () => this.loading.set(false),
       });
+  }
+
+  private releaseTime(releaseDate: string | undefined): number {
+    const time = releaseDate ? new Date(releaseDate).getTime() : 0;
+    return Number.isFinite(time) ? time : 0;
+  }
+
+  openMergeModal(): void {
+    this.mergePicker?.reset();
+    this.mergeModal?.open();
+    this.mergePicker?.focus();
+  }
+
+  closeMergeModal(): void {
+    this.mergeModal?.close();
+  }
+
+  async mergeArtist(picked: {
+    artistId: string;
+    name: string;
+    coverUrl?: string;
+  }): Promise<void> {
+    const current = this.artist();
+    const user = this.authSvc.currentUser();
+    if (!current || !user) return;
+
+    const merged = await this.artistMergeSvc.merge(
+      { artistId: current.id, name: current.name },
+      { artistId: picked.artistId, name: picked.name },
+      user,
+    );
+
+    this.closeMergeModal();
+    if (merged) this.artistCacheSvc.clear();
+  }
+
+  async unmergeAll(): Promise<void> {
+    const current = this.artist();
+    if (!current) return;
+
+    const removed = await this.artistMergeSvc.unmergeGroup(current.id);
+    if (removed) this.artistCacheSvc.clear();
+  }
+
+  openPhotoModal(): void {
+    this.photoModal?.open();
+  }
+
+  closePhotoModal(): void {
+    this.photoModal?.close();
+  }
+
+  async saveArtistPhoto(image: string): Promise<void> {
+    const current = this.artist();
+    const user = this.authSvc.currentUser();
+    if (!current || !user) return;
+
+    const saved = await this.artistImageSvc.setImage(current.id, image, user);
+    if (saved) this.closePhotoModal();
+  }
+
+  async resetArtistPhoto(): Promise<void> {
+    const current = this.artist();
+    if (!current) return;
+
+    const removed = await this.artistImageSvc.clearImage(current.id);
+    if (removed) this.closePhotoModal();
   }
 
   isInWishlist(id: string): boolean {
@@ -454,7 +718,9 @@ export class ArtistComponent implements OnInit {
   }
 
   isArtistInWishlist(artistId: string | number): boolean {
-    return this.favoriteArtistsSvc.artistIds().has(String(artistId));
+    return this.artistMergeSvc
+      .groupIds(String(artistId))
+      .some((id) => this.favoriteArtistsSvc.artistIds().has(id));
   }
 
   async toggle(track: Track) {
@@ -478,17 +744,20 @@ export class ArtistComponent implements OnInit {
     if (!currentArtist || !user) return;
 
     const artistId = String(currentArtist.id);
+    const group = this.artistMergeSvc.groupIds(artistId);
     const existing = this.favoriteArtistsSvc
       .artists()
-      .find((a) => a.artistId === artistId);
+      .filter((a) => group.includes(a.artistId));
 
-    if (existing && existing.id) {
-      await this.favoriteArtistsSvc.remove(existing.id);
+    if (existing.length > 0) {
+      for (const artist of existing) {
+        if (artist.id) await this.favoriteArtistsSvc.remove(artist.id);
+      }
     } else {
       await this.favoriteArtistsSvc.add(
         artistId,
         currentArtist.name,
-        currentArtist.picture_big,
+        currentArtist.coverUrl,
         user,
       );
     }
@@ -562,8 +831,9 @@ export class ArtistComponent implements OnInit {
     if (!menu) return;
     const url =
       menu.kind === 'track'
-        ? `https://deezer.com/track/${(menu.item as Track).id}`
-        : `https://deezer.com/album/${(menu.item as ReleaseItem).id}`;
+        ? catalogExternalUrl(menu.item as Track)
+        : catalogExternalUrl(menu.item as ReleaseItem);
+    if (!url) return;
     try {
       await navigator.clipboard.writeText(url);
       this.toast.success(
@@ -589,7 +859,10 @@ export class ArtistComponent implements OnInit {
   async exportAllReleases(): Promise<void> {
     const items = this.allReleasesForExport();
     if (!items.length) return;
-    const cmds = items.map((item) => `godeez https://deezer.com/album/${item.id}`).join('\n');
+    const cmds = items
+      .map((item) => catalogExportLine(item))
+      .filter((line): line is string => Boolean(line))
+      .join('\n');
     try {
       await navigator.clipboard.writeText(cmds);
       this.toast.success(this.languageService.t().wishlistExported);

@@ -5,6 +5,15 @@
 
 import webpush from 'web-push';
 import jwt from 'jsonwebtoken';
+import { getProvider } from '../lib/providers/index.js';
+import {
+  artistCacheKey,
+  artistIdentity,
+  expandFavoriteArtists,
+  groupFavoritesByProvider,
+  selectNewReleases,
+  toLegacyAlbum,
+} from '../lib/providers/release-monitoring.js';
 
 const PROJECT_ID = process.env.FIREBASE_PROJECT_ID;
 const FIREBASE_API_KEY = process.env.FIREBASE_API_KEY;
@@ -312,27 +321,10 @@ function fromValue(v) {
 const RELEASE_WINDOW_DAYS = Number(process.env.RELEASE_WINDOW_DAYS ?? 2);
 
 async function fetchArtistAlbums(artistId) {
-  const res = await fetch(`https://api.deezer.com/artist/${artistId}/albums?limit=50`);
-  if (!res.ok) return [];
-  const data = await res.json();
-  return data.data ?? [];
-}
-
-function isWithinWindow(releaseDateStr, days) {
-  if (!releaseDateStr) return false;
-  const releaseDate = new Date(releaseDateStr);
-  if (isNaN(releaseDate.getTime())) return false;
-
-  // Deezer provides release dates without a time. Treat the window as calendar
-  // days, not a rolling 24-hour period, so a release dated yesterday is still
-  // found by the daily 09:00 UTC cron.
-  const today = new Date();
-  today.setUTCHours(0, 0, 0, 0);
-  const releaseDay = new Date(releaseDate);
-  releaseDay.setUTCHours(0, 0, 0, 0);
-  const cutoff = today.getTime() - Math.max(0, days) * 24 * 60 * 60 * 1000;
-
-  return releaseDay.getTime() >= cutoff && releaseDay.getTime() <= today.getTime();
+  const { provider: providerId, externalId } = artistIdentity(artistId);
+  const provider = getProvider(providerId);
+  const albums = await provider.getArtistAlbums(externalId, 50);
+  return albums.map(toLegacyAlbum);
 }
 
 // ── Runner ────────────────────────────────────────────────────
@@ -384,7 +376,18 @@ async function run(uid, idToken, clientId) {
     return { notified: 0, results: [], error: 'No favorite artists found.' };
   }
 
-  const favorites = favDocs.map((d) => fromFields(d.fields));
+  const favorites = expandFavoriteArtists(
+    favDocs.map((d) => fromFields(d.fields)),
+    (
+      await listWhere('artist-merges', 'ownerUid', 'EQUAL', uid, idToken)
+    ).map((d) => fromFields(d.fields)),
+  );
+  const favoritesByProvider = groupFavoritesByProvider(favorites);
+  console.log(
+    `[check-releases] providers: ${Object.entries(favoritesByProvider)
+      .map(([provider, list]) => `${provider}=${list.length}`)
+      .join(', ')}`,
+  );
 
   // Phase 1 — resolve new releases per favorite. Bounded concurrency keeps the
   // whole run inside the function time limit. The cache is NOT written here:
@@ -394,30 +397,40 @@ async function run(uid, idToken, clientId) {
     favorites,
     FETCH_CONCURRENCY,
     async (favorite) => {
-      const albums = await fetchArtistAlbums(favorite.artistId);
-      if (!albums.length) {
-        console.log(`[check-releases] No albums from Deezer for artist ${favorite.artistId}`);
+      let albums;
+      try {
+        albums = await fetchArtistAlbums(favorite.artistId);
+      } catch (error) {
+        console.error(
+          `[check-releases] Release fetch failed for artist ${favorite.artistId}: ${error.message}`,
+        );
         return null;
       }
 
-      // Cron runs use one clientId ('cron'). Include uid so a release sent to
-      // one user does not suppress the same artist's notification for others.
-      const cacheRef = `artist-releases-cache/${clientId}_${uid}_${favorite.artistId}`;
+      if (!albums.length) {
+        console.log(
+          `[check-releases] No albums for artist ${favorite.artistId}`,
+        );
+        return null;
+      }
+
+      const cacheRef = artistCacheKey(favorite.artistId, clientId, uid);
       const cacheDoc = await getDoc(cacheRef, idToken);
       const notifiedIds = cacheDoc ? (cacheDoc.fields?.albumIds?.arrayValue?.values ?? []).map((v) => v.stringValue).filter(Boolean) : [];
 
       console.log(`[check-releases] artist=${favorite.name} cacheRef=${cacheRef} notifiedIds count=${notifiedIds.length} RELEASE_WINDOW_DAYS=${RELEASE_WINDOW_DAYS}`);
 
-      const albumsToNotify = albums.filter((a) => {
-        const isNew = isWithinWindow(a.release_date, RELEASE_WINDOW_DAYS);
-        const alreadyNotified = notifiedIds.includes(String(a.id));
-        // Only log actual candidates: logging every album floods the runtime
-        // logs (which are capped) and hides the end of the run.
-        if (isNew) {
-          console.log(`[check-releases]   NEW album=${a.title} release_date=${a.release_date} alreadyNotified=${alreadyNotified}`);
-        }
-        return isNew && !alreadyNotified;
-      });
+      const albumsToNotify = selectNewReleases(
+        albums,
+        notifiedIds,
+        RELEASE_WINDOW_DAYS,
+      );
+
+      for (const album of albumsToNotify) {
+        console.log(
+          `[check-releases]   NEW album=${album.title} release_date=${album.release_date} provider=${album.provider}`,
+        );
+      }
 
       console.log(`[check-releases] albumsToNotify count: ${albumsToNotify.length}`);
       return { favorite, cacheRef, notifiedIds, albumsToNotify };
@@ -453,7 +466,8 @@ async function run(uid, idToken, clientId) {
         artist: favorite.name,
         releaseType,
         coverUrl,
-        albumId: String(album.id),
+        albumId: album.catalogId ?? String(album.id),
+        provider: album.provider,
       });
 
       const staleIds = [];
@@ -484,8 +498,9 @@ async function run(uid, idToken, clientId) {
               artist: favorite.name,
               releaseType,
               coverUrl,
-              albumId: String(album.id),
+              albumId: album.catalogId ?? String(album.id),
               artistId: String(favorite.artistId),
+              provider: album.provider,
               releaseDate: album.release_date,
               language: entry.language === 'en' ? 'en' : 'es',
             },
@@ -515,9 +530,9 @@ async function run(uid, idToken, clientId) {
       if (sentAny) {
         notified++;
         sentIds.push(String(album.id));
-        artistResults.albums.push({ id: album.id, title: album.title, recordType: releaseType, sent: true });
+        artistResults.albums.push({ id: album.id, provider: album.provider, title: album.title, recordType: releaseType, sent: true });
       } else {
-        artistResults.albums.push({ id: album.id, title: album.title, recordType: releaseType, sent: false, error: 'All subscriptions failed' });
+        artistResults.albums.push({ id: album.id, provider: album.provider, title: album.title, recordType: releaseType, sent: false, error: 'All subscriptions failed' });
       }
     }
 

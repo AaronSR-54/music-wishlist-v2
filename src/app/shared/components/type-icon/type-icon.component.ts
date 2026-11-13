@@ -17,6 +17,7 @@ const createColorMap = (palette: Record<string, string>) => ({
   ep: palette['ep'],
   single: palette['track'],
   artist: palette['artist'],
+  video: palette['ep'],
 });
 
 const COLORS_DARK = createColorMap(tailwindConfig.accentDark);
@@ -27,6 +28,7 @@ const TYPE_ICONS: Record<TrackType, IconName> = {
   album: 'album',
   ep: 'ep',
   artist: 'person',
+  video: 'play',
 };
 
 @Component({
@@ -78,6 +80,7 @@ export class TypeIconComponent {
       album: translations.album,
       ep: 'EP',
       artist: translations.artist,
+      video: translations.video,
     };
     return labels[this.type()] ?? '';
   }

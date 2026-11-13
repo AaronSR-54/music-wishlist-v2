@@ -1,18 +1,3 @@
-export default async (req, res) => {
-  const { id } = req.query;
+import { createAlbumTracksHandler } from '../lib/providers/handlers.js';
 
-  if (!id) {
-    return res.status(400).json({ error: 'Missing id parameter' });
-  }
-
-  try {
-    const url = `https://api.deezer.com/album/${id}/tracks`;
-    const response = await fetch(url);
-    const data = await response.json();
-
-    res.setHeader('Access-Control-Allow-Origin', '*');
-    res.json(data);
-  } catch (error) {
-    res.status(500).json({ error: 'Internal server error' });
-  }
-};
+export default createAlbumTracksHandler();

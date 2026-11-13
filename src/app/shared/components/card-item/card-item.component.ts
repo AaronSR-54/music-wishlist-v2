@@ -153,7 +153,7 @@ import { ButtonComponent } from '../button/button.component';
           </div>
         }
 
-        <div class="flex flex-col gap-1">
+        <div class="flex flex-col mb-1">
           <span
             class="card-name font-display text-sm sm:text-base md:text-lg font-semibold text-ink-100 dark:text-bone-100 leading-none truncate max-w-full"
             [ngClass]="playingClass()"

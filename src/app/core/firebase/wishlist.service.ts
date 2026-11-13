@@ -28,6 +28,7 @@ import { WishlistShareService } from './wishlist-share.service';
 import { ToastService } from '../../shared/components/toast/toast.component';
 import { LanguageService } from '../i18n/language.service';
 import { AuthService } from '../auth/auth.service';
+import { normalizeCatalogItem } from '../catalog/catalog-normalize';
 
 @Injectable({ providedIn: 'root' })
 export class WishlistService {
@@ -97,15 +98,15 @@ export class WishlistService {
       );
 
       const unsubscribe1 = onSnapshot(q1, (snap1) => {
-        const entries = snap1.docs.map(
-          (d) => ({ id: d.id, ...d.data() }) as WishlistEntry,
+        const entries = this.normalizeEntries(
+          snap1.docs.map((d) => ({ id: d.id, ...d.data() }) as WishlistEntry),
         );
         this._ownEntries.set(entries);
       });
 
       const unsubscribe2 = onSnapshot(q2, (snap2) => {
-        const entries = snap2.docs.map(
-          (d) => ({ id: d.id, ...d.data() }) as WishlistEntry,
+        const entries = this.normalizeEntries(
+          snap2.docs.map((d) => ({ id: d.id, ...d.data() }) as WishlistEntry),
         );
         this._sharedEntries.set(entries);
       });
@@ -118,7 +119,30 @@ export class WishlistService {
     const key = `wishlist-${uid}`;
     const stored = localStorage.getItem(key);
     const entries: WishlistEntry[] = stored ? JSON.parse(stored) : [];
-    this._ownEntries.set(entries);
+    this._ownEntries.set(this.normalizeEntries(entries));
+  }
+
+  private normalizeEntries(entries: WishlistEntry[]): WishlistEntry[] {
+    return entries.map((entry) => {
+      const normalized = normalizeCatalogItem({
+        id: entry.trackId,
+        provider: entry.provider,
+        externalId: entry.externalId,
+      });
+      return {
+        ...entry,
+        trackId: normalized.id,
+        provider: normalized.provider,
+        externalId: normalized.externalId,
+        artistId: this.normalizeRef(entry.artistId),
+        albumId: this.normalizeRef(entry.albumId),
+      };
+    });
+  }
+
+  private normalizeRef(value?: string): string | undefined {
+    if (!value) return undefined;
+    return normalizeCatalogItem({ id: value }).id;
   }
 
   stopListener(): void {
@@ -132,20 +156,29 @@ export class WishlistService {
     const sharedWithEmails = this.shareService
       .sharesGiven()
       .map((s) => s.recipientEmail);
+    const normalized = normalizeCatalogItem({
+      id: track.id,
+      provider: track.provider,
+      externalId: track.externalId,
+    });
 
     const entry: Omit<WishlistEntry, 'id'> = {
-      trackId: track.id,
+      trackId: normalized.id,
+      externalId: normalized.externalId,
+      provider: normalized.provider,
       name: track.name,
       artist: track.artists[0] ?? '',
       coverUrl: track.coverUrl,
       type: track.type,
-      addedAt: Date.now(),
-      addedBy: user.displayName ?? user.email ?? 'Anónimo',
+      uri: track.uri,
+      addedAt: Date.now(),      addedBy: user.displayName ?? user.email ?? 'Anónimo',
       addedByUid: user.uid,
       downloaded: false,
       sharedWith: sharedWithEmails,
-      ...(track.artistId ? { artistId: track.artistId } : {}),
-      ...(track.albumId ? { albumId: track.albumId } : {}),
+      ...(track.artistId
+        ? { artistId: this.normalizeRef(track.artistId) }
+        : {}),
+      ...(track.albumId ? { albumId: this.normalizeRef(track.albumId) } : {}),
       ...(track.albumName ? { albumName: track.albumName } : {}),
     };
 
@@ -174,19 +207,29 @@ export class WishlistService {
     const sharedWithEmails = this.shareService
       .sharesGiven()
       .map((s) => s.recipientEmail);
+    const normalized = normalizeCatalogItem({
+      id: release.id,
+      provider: release.provider,
+      externalId: release.externalId,
+    });
 
     const entry: Omit<WishlistEntry, 'id'> = {
-      trackId: release.id,
+      trackId: normalized.id,
+      externalId: normalized.externalId,
+      provider: normalized.provider,
       name: release.name,
       artist: release.artist,
       coverUrl: release.coverUrl,
       type: release.type,
+      uri: release.uri,
       addedAt: Date.now(),
       addedBy: user.displayName ?? user.email ?? 'Anónimo',
       addedByUid: user.uid,
       downloaded: false,
       sharedWith: sharedWithEmails,
-      ...(release.artistId ? { artistId: release.artistId } : {}),
+      ...(release.artistId
+        ? { artistId: this.normalizeRef(release.artistId) }
+        : {}),
     };
 
     try {

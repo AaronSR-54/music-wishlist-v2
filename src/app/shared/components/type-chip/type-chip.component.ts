@@ -16,6 +16,7 @@ const createColorMap = (palette: Record<string, string>) => ({
   ep: palette['ep'],
   single: palette['track'],
   artist: palette['artist'],
+  video: palette['ep'],
 });
 
 const COLORS_LIGHT = createColorMap(tailwindConfig.accentLight);
@@ -37,6 +38,20 @@ const hexToRgba = (hex: string, alpha: number): string => {
     '[style.display]': "size === 'filter' ? 'block' : null",
     '[style.width]': "size === 'filter' ? '100%' : null",
   },
+  styles: `
+    /* On mobile the filter chips are icon-only; the selected one keeps its label. */
+    .chip-label {
+      display: none;
+    }
+    @media (min-width: 768px) {
+      .chip-label {
+        display: inline;
+      }
+    }
+    .chip-label.is-shown {
+      display: inline;
+    }
+  `,
   template: `
     <span
       class="flex items-center leading-none rounded-md text-ink border dark:text-bone font-display font-medium whitespace-nowrap text-xs"
@@ -68,7 +83,11 @@ const hexToRgba = (hex: string, alpha: number): string => {
             variant="filter"
             [iconSize]="size === 'cover' ? 'small' : 'normal'"
           />
-          {{ label }}
+          <span
+            [class.chip-label]="size === 'filter'"
+            [class.is-shown]="solid"
+            >{{ label }}</span
+          >
         </span>
       } @else {
         {{ label }}
@@ -99,6 +118,7 @@ export class TypeChipComponent {
       ep: 'EP',
       single: 'Single',
       artist: translations.artist,
+      video: translations.video,
     };
     return labels[this.type];
   }

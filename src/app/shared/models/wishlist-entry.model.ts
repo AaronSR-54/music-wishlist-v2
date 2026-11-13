@@ -1,8 +1,11 @@
+import { CatalogProviderId } from './catalog-provider';
 import { TrackType } from './track.model';
 
 export interface WishlistEntry {
   id?: string;
   trackId: string;
+  externalId?: string;
+  provider?: CatalogProviderId;
   name: string;
   artist: string;
   coverUrl: string;
@@ -15,6 +18,7 @@ export interface WishlistEntry {
   artistId?: string;
   albumId?: string;
   albumName?: string;
+  uri?: string;
   /** Runtime-only ownership flag added when entries are merged for display. */
   isOwner?: boolean;
 }

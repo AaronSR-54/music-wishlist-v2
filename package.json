@@ -1,6 +1,6 @@
 {
   "name": "music-wishlist-v2",
-  "version": "0.33.0",
+  "version": "0.34.0",
   "scripts": {
     "ng": "ng",
     "prestart": "node scripts/generate-version.js",
@@ -13,7 +13,8 @@
     "android:assets": "node scripts/generate-native-branding.mjs",
     "store:screenshots": "node scripts/capture-store-screenshots.mjs",
     "store:feature": "node scripts/generate-feature-graphic.mjs",
-    "test": "ng test"
+    "test": "ng test",
+    "test:api": "node --test tests/providers/*.test.mjs"
   },
   "prettier": {
     "overrides": [

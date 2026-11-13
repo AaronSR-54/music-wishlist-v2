@@ -22,6 +22,7 @@ import { User } from '@angular/fire/auth';
 import { Track } from '../../shared/models/track.model';
 import { AuthService } from '../auth/auth.service';
 import { FavoriteArtist } from '../../shared/models/favorite.artist.model';
+import { parseCatalogId, toCatalogId } from '../catalog/catalog-id';
 
 @Injectable({ providedIn: 'root' })
 export class FavoritesService {
@@ -63,7 +64,9 @@ export class FavoritesService {
 
         this.unsubscribeFn = onSnapshot(q, (snap) => {
           this._favorites.set(
-            snap.docs.map((d) => ({ id: d.id, ...d.data() }) as FavoriteArtist),
+            snap.docs.map((d) =>
+              this.normalizeArtist({ id: d.id, ...d.data() } as FavoriteArtist),
+            ),
           );
         });
       });
@@ -74,12 +77,30 @@ export class FavoritesService {
     const key = `favorite-artists-${uid}`;
     const stored = localStorage.getItem(key);
     const artists: FavoriteArtist[] = stored ? JSON.parse(stored) : [];
-    this._favorites.set(artists);
+    this._favorites.set(artists.map((artist) => this.normalizeArtist(artist)));
+  }
+
+  private normalizeArtist(artist: FavoriteArtist): FavoriteArtist {
+    const parsed = parseCatalogId(artist.artistId, artist.provider);
+    const provider = artist.provider ?? parsed?.provider ?? 'deezer';
+    const externalId = artist.externalId ?? parsed?.externalId ?? artist.artistId;
+    return {
+      ...artist,
+      provider,
+      externalId,
+      artistId: toCatalogId(provider, externalId),
+    };
   }
 
   async add(track: Track, user: User): Promise<void> {
+    const artistRef = track.artistId ?? track.id;
+    const parsed = parseCatalogId(artistRef, track.provider);
+    const provider = parsed?.provider ?? track.provider ?? 'deezer';
+    const externalId = parsed?.externalId ?? artistRef;
     const entry: Omit<FavoriteArtist, 'id'> = {
-      artistId: track.artistId ?? track.id,
+      artistId: toCatalogId(provider, externalId),
+      externalId,
+      provider,
       name: track.name,
       coverUrl: track.coverUrl,
       addedAt: Date.now(),

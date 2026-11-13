@@ -1,5 +1,6 @@
-import { Component, input, output, ChangeDetectionStrategy } from '@angular/core';
+import { Component, computed, inject, input, output, ChangeDetectionStrategy } from '@angular/core';
 import { FavoriteArtist } from '../../../core/firebase/favorite-artists.service';
+import { ArtistImageService } from '../../../core/firebase/artist-image.service';
 import { IconComponent } from '../../icons/icon.component';
 
 @Component({
@@ -37,8 +38,15 @@ import { IconComponent } from '../../icons/icon.component';
   `,
 })
 export class ArtistCardComponent {
+  private artistImages = inject(ArtistImageService);
+
   artist = input.required<FavoriteArtist>();
   isFavorite = input<boolean>(true);
+
+  /** The photo picked by the user wins over the stored catalog picture. */
+  image = computed(() =>
+    this.artistImages.resolve(this.artist().artistId, this.artist().image),
+  );
 
   onArtistClick = output<FavoriteArtist>();
   onRemoveFavorite = output<string>();

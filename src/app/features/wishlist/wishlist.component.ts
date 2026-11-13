@@ -17,6 +17,10 @@ import { SuperuserService } from '../../core/superuser/superuser.service';
 import { IconComponent } from '../../shared/icons/icon.component';
 import { ModalComponent } from '../../shared/components/modal/modal.component';
 import { ScrollMaskDirective } from '../../shared/directives/scroll-mask.directive';
+import {
+  catalogExportLine,
+  catalogExternalUrl,
+} from '../../shared/utils/catalog-link';
 
 type WishlistTab = 'pending' | 'downloaded';
 
@@ -772,10 +776,13 @@ export class WishlistComponent {
   private async copyToClipboard(entry: WishlistEntry) {
     if (!entry.trackId) return;
 
-    const url =
-      entry.type === 'track'
-        ? `https://deezer.com/track/${entry.trackId}`
-        : `https://deezer.com/album/${entry.trackId}`;
+    const url = catalogExternalUrl({
+      id: entry.trackId,
+      provider: entry.provider,
+      type: entry.type,
+      uri: entry.uri,
+    });
+    if (!url) return;
 
     try {
       await navigator.clipboard.writeText(url);
@@ -790,12 +797,14 @@ export class WishlistComponent {
     const cmds = entries
       .filter((e) => e.trackId)
       .map((e) => {
-        const url =
-          e.type === 'track'
-            ? `https://deezer.com/track/${e.trackId}`
-            : `https://deezer.com/album/${e.trackId}`;
-        return `godeez ${url}`;
+        return catalogExportLine({
+          id: e.trackId,
+          provider: e.provider,
+          type: e.type,
+          uri: e.uri,
+        });
       })
+      .filter((line): line is string => Boolean(line))
       .join('\n');
     if (!cmds) return;
     try {

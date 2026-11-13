@@ -10,9 +10,9 @@
   <div
     class="media relative w-full aspect-square overflow-hidden bg-ink-900"
   >
-    @if (artist().image?.trim()) {
+    @if (image().trim()) {
       <img
-        [src]="artist().image"
+        [src]="image()"
         [alt]="artist().name"
         loading="lazy"
         class="artist-cover-image w-full h-full object-cover transition-transform duration-500 ease-[cubic-bezier(0.4,0,0.2,1)] group-hover/card:scale-105"

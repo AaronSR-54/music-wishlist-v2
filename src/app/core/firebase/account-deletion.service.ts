@@ -36,6 +36,12 @@ export class AccountDeletionService {
       query(col('favorite-artists'), where('addedByUid', '==', uid)),
     );
     await this.deleteWhere(
+      query(col('artist-merges'), where('ownerUid', '==', uid)),
+    );
+    await this.deleteWhere(
+      query(col('artist-images'), where('ownerUid', '==', uid)),
+    );
+    await this.deleteWhere(
       query(col('wishlist-shares'), where('ownerUid', '==', uid)),
     );
     await this.deleteWhere(

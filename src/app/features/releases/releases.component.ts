@@ -10,14 +10,14 @@ import {
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
-import { Observable, forkJoin, of, from } from 'rxjs';
-import { catchError, map, switchMap } from 'rxjs/operators';
+import { Observable, forkJoin, of } from 'rxjs';
+import { catchError, map } from 'rxjs/operators';
 import { FavoritesService } from '../../core/firebase/favorites.service';
+import { ArtistMergeService } from '../../core/firebase/artist-merge.service';
 import { WishlistService } from '../../core/firebase/wishlist.service';
 import { AuthService } from '../../core/auth/auth.service';
+import { SearchService } from '../../core/api/search.service';
 import { ReleaseItem } from '../../shared/models/release-item.model';
-import { TrackType } from '../../shared/models/track.model';
-import { DeezerAlbum, DReleasesResponse, DAlbumTracksResponse } from '../../shared/models/deezer';
 import { CardItemComponent } from '../../shared/components/card-item/card-item.component';
 import { SpinnerComponent } from '../../shared/components/spinner/spinner.component';
 import { EmptyStateComponent } from '../../shared/components/empty-state/empty-state.component';
@@ -25,12 +25,12 @@ import { LanguageService } from '../../core/i18n/language.service';
 import { PageHeaderComponent } from '../../shared/components/page-header/page-header.component';
 import { ContextMenuPanelComponent } from '../../shared/components/context-menu-panel/context-menu-panel.component';
 import { ToastService } from '../../shared/components/toast/toast.component';
-import { apiUrl } from '../../core/api/api-url';
 import {
   SegmentedTabsComponent,
   SegmentedTabOption,
 } from '../../shared/components/segmented-tabs/segmented-tabs.component';
 import { ScrollMaskDirective } from '../../shared/directives/scroll-mask.directive';
+import { catalogExternalUrl } from '../../shared/utils/catalog-link';
 
 @Component({
   selector: 'app-releases',
@@ -183,13 +183,14 @@ import { ScrollMaskDirective } from '../../shared/directives/scroll-mask.directi
 })
 export class ReleasesComponent {
   private favoritesSvc = inject(FavoritesService);
+  private artistMergeSvc = inject(ArtistMergeService);
   private wishlistSvc = inject(WishlistService);
   private authSvc = inject(AuthService);
+  private searchSvc = inject(SearchService);
   private languageService = inject(LanguageService);
   private router = inject(Router);
   private toast = inject(ToastService);
   private destroyRef = inject(DestroyRef);
-  private apiUrl = '/api';
 
   contextMenu = signal<{ x: number; y: number; item: ReleaseItem } | null>(null);
 
@@ -266,9 +267,38 @@ export class ReleasesComponent {
     effect(() => {
       const year = this.selectedYear();
       const month = this.selectedMonth();
-      const favorites = this.favorites();
+      const favorites = this.expandFavorites(this.favorites());
+      this.artistMergeSvc.merges();
       this.loadReleases(year, month, favorites);
     });
+  }
+
+  /**
+   * One favorite can represent several Deezer profiles after a user merge.
+   * Expand every favorite to its whole group and dedupe by canonical artist,
+   * so releases from both profiles load once.
+   */
+  private expandFavorites(
+    favorites: { artistId: string; name: string }[],
+  ): { artistId: string; name: string }[] {
+    const seen = new Set<string>();
+    const expanded: { artistId: string; name: string }[] = [];
+
+    for (const favorite of favorites) {
+      const root = this.artistMergeSvc.resolveId(favorite.artistId);
+      const members = this.artistMergeSvc.groupIds(root);
+
+      for (const artistId of members) {
+        if (seen.has(artistId)) continue;
+        seen.add(artistId);
+        expanded.push({
+          artistId,
+          name: this.artistMergeSvc.nameOf(artistId) || favorite.name,
+        });
+      }
+    }
+
+    return expanded;
   }
 
   private loadCacheFromSession() {
@@ -366,35 +396,8 @@ export class ReleasesComponent {
     this.loading.set(true);
 
     const artistObservables = favorites.map((fav) =>
-      from(
-        this.fetchJson(
-          apiUrl(
-            `${this.apiUrl}/artist-albums?id=${encodeURIComponent(fav.artistId)}&limit=100`,
-          ),
-        ),
-      ).pipe(
-        map(
-          (
-            res: DReleasesResponse,
-          ): {
-            fav: { artistId: string; name: string };
-            releases: ReleaseItem[];
-          } => ({
-            fav,
-            releases: (res.data ?? []).map((a: DeezerAlbum) => ({
-              id: String(a.id),
-              name: a.title,
-              artist: fav.name ?? '',
-              coverUrl: a.cover_big ?? a.cover_medium ?? '',
-              type: (a.record_type === 'single'
-                ? 'single'
-                : 'album') as TrackType,
-              releaseDate: a.release_date ?? '',
-              previewUrl: undefined,
-              artistId: a.artist?.id ? String(a.artist.id) : undefined,
-            })),
-          }),
-        ),
+      this.searchSvc.getArtistReleases(fav.artistId, fav.name).pipe(
+        map((releases) => ({ fav, releases })),
         catchError(() => of({ fav, releases: [] as ReleaseItem[] })),
       ),
     );
@@ -420,7 +423,6 @@ export class ReleasesComponent {
               return releaseYear === year && releaseMonth - 1 === month;
             });
         }),
-        switchMap((filteredForMonth) => this.withPreviews(filteredForMonth)),
         map((releases) =>
           releases.sort(
             (a, b) =>
@@ -439,45 +441,6 @@ export class ReleasesComponent {
         },
         error: () => this.loading.set(false),
       });
-  }
-
-  private withPreviews(releases: ReleaseItem[]): Observable<ReleaseItem[]> {
-    const singles = releases.filter((r) => r.type === 'single');
-    if (singles.length === 0) return of(releases);
-
-    const previewCalls = singles.map((s) =>
-      from(
-        this.fetchJson(
-          apiUrl(`${this.apiUrl}/album-tracks?id=${encodeURIComponent(s.id)}`),
-        ),
-      ).pipe(
-        map((tracksRes: DAlbumTracksResponse) => ({
-          id: s.id,
-          previewUrl: tracksRes.data?.[0]?.preview
-            ? apiUrl(`/api/preview?url=${encodeURIComponent(tracksRes.data[0].preview)}`)
-            : undefined,
-        })),
-        catchError(() => of({ id: s.id, previewUrl: undefined })),
-      ),
-    );
-
-    return forkJoin(previewCalls).pipe(
-      map((previews) => {
-        const previewMap = new Map(previews.map((p) => [p.id, p.previewUrl]));
-        return releases.map((r) => ({
-          ...r,
-          previewUrl: previewMap.get(r.id),
-        }));
-      }),
-    );
-  }
-
-  private async fetchJson(url: string): Promise<any> {
-    const response = await fetch(url);
-    if (!response.ok) {
-      throw new Error(`Request failed: ${response.status}`);
-    }
-    return response.json();
   }
 
   openInYouTube(item: ReleaseItem) {
@@ -544,7 +507,8 @@ export class ReleasesComponent {
   async copyFromContextMenu(): Promise<void> {
     const menu = this.contextMenu();
     if (!menu) return;
-    const url = `https://deezer.com/album/${menu.item.id}`;
+    const url = catalogExternalUrl(menu.item);
+    if (!url) return;
     try {
       await navigator.clipboard.writeText(url);
       this.toast.success(

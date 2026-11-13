@@ -29,7 +29,10 @@ export type IconName =
   | 'album'
   | 'ep'
   | 'person'
-  | 'external-link';
+  | 'external-link'
+  | 'edit'
+  | 'upload'
+  | 'volume';
 
 export const ICON_REGISTRY: Record<IconName, string> = {
   copy: `<svg xmlns="http://www.w3.org/2000/svg" width="100%" height="100%" viewBox="0 0 16 16" fill="none"><rect x="5.5" y="5.5" width="8" height="9" rx="1.5" stroke="currentColor" stroke-width="1.5"/><path d="M10.5 3.5A1.5 1.5 0 0 0 9 2H3.5A1.5 1.5 0 0 0 2 3.5v7A1.5 1.5 0 0 0 3.5 12H4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>`,
@@ -63,4 +66,7 @@ export const ICON_REGISTRY: Record<IconName, string> = {
   ep: `<svg xmlns="http://www.w3.org/2000/svg" width="100%" height="100%" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="1.5"/><circle cx="12" cy="12" r="4" fill="currentColor"/></svg>`,
   person: `<svg xmlns="http://www.w3.org/2000/svg" width="100%" height="100%" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="8" r="4.5" stroke="currentColor" stroke-width="1.5"/><path d="M4 21c0-4.5 3.6-8 8-8s8 3.5 8 8" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>`,
   'external-link': `<svg xmlns="http://www.w3.org/2000/svg" width="100%" height="100%" viewBox="0 0 16 16" fill="none"><path d="M6.5 3H3.5A1.5 1.5 0 0 0 2 4.5v8A1.5 1.5 0 0 0 3.5 14h8a1.5 1.5 0 0 0 1.5-1.5v-3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M9.5 2H14v4.5M13.5 2.5 7.5 8.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>`,
+  edit: `<svg xmlns="http://www.w3.org/2000/svg" width="100%" height="100%" viewBox="0 0 16 16" fill="none"><path d="M10.5 2.5a1.77 1.77 0 0 1 2.5 2.5L5.5 12.5 2.5 13.5l1-3 7-8Z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/><path d="M9.5 3.5 12.5 6.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>`,
+  upload: `<svg xmlns="http://www.w3.org/2000/svg" width="100%" height="100%" viewBox="0 0 16 16" fill="none"><path d="M8 10.5V2m0 0L4.5 5.5M8 2l3.5 3.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M2.5 10v2A1.5 1.5 0 0 0 4 13.5h8a1.5 1.5 0 0 0 1.5-1.5v-2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>`,
+  volume: `<svg xmlns="http://www.w3.org/2000/svg" width="100%" height="100%" viewBox="0 0 16 16" fill="none"><path d="M2 6v4h2.5L8 13V3L4.5 6H2Z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/><path d="M10.5 5.5a3.5 3.5 0 0 1 0 5M12.5 3.5a6.5 6.5 0 0 1 0 9" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>`,
 };

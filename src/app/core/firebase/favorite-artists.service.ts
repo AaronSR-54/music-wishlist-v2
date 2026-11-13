@@ -22,10 +22,14 @@ import { SearchService } from '../api/search.service';
 import { AuthService } from '../auth/auth.service';
 import { ToastService } from '../../shared/components/toast/toast.component';
 import { LanguageService } from '../i18n/language.service';
+import { CatalogProviderId } from '../../shared/models/catalog-provider';
+import { parseCatalogId, toCatalogId } from '../catalog/catalog-id';
 
 export interface FavoriteArtist {
   id?: string;
   artistId: string;
+  externalId?: string;
+  provider?: CatalogProviderId;
   name: string;
   image?: string;
   addedAt: number;
@@ -70,7 +74,7 @@ export class FavoriteArtistsService {
 
       this.unsubscribe = onSnapshot(q, async (snap) => {
         let artists = snap.docs.map(
-          (d) => ({ id: d.id, ...d.data() }) as FavoriteArtist,
+          (d) => this.normalizeArtist({ id: d.id, ...d.data() } as FavoriteArtist),
         );
 
         artists = await Promise.all(
@@ -82,8 +86,7 @@ export class FavoriteArtistsService {
                   .toPromise();
                 return {
                   ...artist,
-                  image:
-                    data?.picture_big ?? data?.picture_medium ?? artist.image,
+                  image: data?.coverUrl ?? artist.image,
                 };
               } catch {
                 return artist;
@@ -102,7 +105,19 @@ export class FavoriteArtistsService {
     const key = `favorite-artists-${uid}`;
     const stored = localStorage.getItem(key);
     const artists: FavoriteArtist[] = stored ? JSON.parse(stored) : [];
-    this._artists.set(artists);
+    this._artists.set(artists.map((artist) => this.normalizeArtist(artist)));
+  }
+
+  private normalizeArtist(artist: FavoriteArtist): FavoriteArtist {
+    const parsed = parseCatalogId(artist.artistId, artist.provider);
+    const provider = artist.provider ?? parsed?.provider ?? 'deezer';
+    const externalId = artist.externalId ?? parsed?.externalId ?? artist.artistId;
+    return {
+      ...artist,
+      provider,
+      externalId,
+      artistId: toCatalogId(provider, externalId),
+    };
   }
 
   stopListener(): void {
@@ -119,8 +134,13 @@ export class FavoriteArtistsService {
     image: string | undefined,
     user: User,
   ): Promise<void> {
+    const parsed = parseCatalogId(artistId);
+    const provider = parsed?.provider ?? 'deezer';
+    const externalId = parsed?.externalId ?? artistId;
     const entry: Omit<FavoriteArtist, 'id'> = {
-      artistId,
+      artistId: toCatalogId(provider, externalId),
+      externalId,
+      provider,
       name: artistName,
       image,
       addedAt: Date.now(),

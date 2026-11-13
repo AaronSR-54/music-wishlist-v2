@@ -24,6 +24,8 @@ import { Capacitor } from '@capacitor/core';
 import { FirebaseAuthentication } from '@capacitor-firebase/authentication';
 import { WishlistService } from '../firebase/wishlist.service';
 import { FavoriteArtistsService } from '../firebase/favorite-artists.service';
+import { ArtistMergeService } from '../firebase/artist-merge.service';
+import { ArtistImageService } from '../firebase/artist-image.service';
 import { WishlistShareService } from '../firebase/wishlist-share.service';
 import { AccountDeletionService } from '../firebase/account-deletion.service';
 import { DEMO_PASSWORD, DEMO_USERNAME, seedDemoData } from './demo-data';
@@ -36,6 +38,8 @@ export class AuthService {
   private router = inject(Router);
   private wishlistService = inject(WishlistService);
   private favoriteArtistsService = inject(FavoriteArtistsService);
+  private artistMergeService = inject(ArtistMergeService);
+  private artistImageService = inject(ArtistImageService);
   private wishlistShareService = inject(WishlistShareService);
   private accountDeletion = inject(AccountDeletionService);
   private ngZone = inject(NgZone);
@@ -53,6 +57,8 @@ export class AuthService {
         firebaseUser.email || '',
       );
       this.favoriteArtistsService.initListener(firebaseUser.uid);
+      this.artistMergeService.initListener(firebaseUser.uid);
+      this.artistImageService.initListener(firebaseUser.uid);
       this.wishlistShareService.initListeners(
         firebaseUser.uid,
         firebaseUser.email || '',
@@ -60,6 +66,8 @@ export class AuthService {
     } else if (!this.demoMode()) {
       this.wishlistService.stopListener();
       this.favoriteArtistsService.stopListener();
+      this.artistMergeService.stopListener();
+      this.artistImageService.stopListener();
       this.wishlistShareService.stopListeners();
     }
   });
@@ -137,6 +145,8 @@ export class AuthService {
 
   async logout(): Promise<void> {
     this.wishlistService.stopListener();
+    this.artistMergeService.stopListener();
+    this.artistImageService.stopListener();
     await signOut(this.auth).catch(() => {});
     this.setDemoMode(false);
     this.router.navigate(['/login']);
@@ -202,6 +212,8 @@ export class AuthService {
     seedDemoData();
     this.wishlistService.initListener('demo-user', 'demo@example.com');
     this.favoriteArtistsService.initListener('demo-user');
+    this.artistMergeService.initListener('demo-user');
+    this.artistImageService.initListener('demo-user');
     this.wishlistShareService.initListeners('demo-user', 'demo@example.com');
   }
 }

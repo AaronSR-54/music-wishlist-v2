@@ -108,8 +108,12 @@ export class NativeShellService {
     }
     const albumId = data['albumId'];
     if (typeof albumId === 'string') {
+      let decoded = albumId;
+      try {
+        decoded = decodeURIComponent(albumId);
+      } catch {}
       const add = actionId === 'add' ? '?add=true' : '';
-      void this.router.navigateByUrl(`/album/${albumId}${add}`);
+      void this.router.navigateByUrl(`/album/${decoded}${add}`);
     }
   }
 

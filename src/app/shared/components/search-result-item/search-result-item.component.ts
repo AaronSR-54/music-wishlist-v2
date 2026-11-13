@@ -23,13 +23,14 @@ import { IconComponent } from '../../icons/icon.component';
 import { ButtonComponent } from '../button/button.component';
 
 import { PreviewService } from '../../../core/services/preview.service';
+import { VideoPreviewService } from '../../../core/services/video-preview.service';
 import { SearchService } from '../../../core/api/search.service';
 import { LanguageService } from '../../../core/i18n/language.service';
 
 import { formatFans } from '../../utils/format-fans';
 import { formatRelativeDate } from '../../utils/format-relative-date';
 
-type SearchItemType = 'artist' | 'track' | 'album' | 'ep' | 'single';
+type SearchItemType = 'artist' | 'track' | 'album' | 'ep' | 'single' | 'video';
 type WishlistEntryExtended = WishlistEntry & {
   isOwner?: boolean;
 };
@@ -189,7 +190,7 @@ type WishlistEntryExtended = WishlistEntry & {
                 class="text-ink-100 dark:text-bone-700 text-sm md:text-md overflow-hidden text-ellipsis transition-colors duration-fast leading-[1.3]"
                 [ngClass]="accentClasses()"
               >
-                @if (isWishlist() && (wishlistItem().artistId || isAlbumType(wishlistItem().type))) {
+                @if (wishlistItem().artistId || (isWishlist() && isAlbumType(wishlistItem().type))) {
                   <button
                     class="hover:underline hover:text-accent-hover-track focus-visible:text-accent-hover-track dark:hover:text-accent-dark-track dark:focus-visible:text-accent-dark-track transition-colors"
                     (click)="onArtistNameClick($event)"
@@ -302,6 +303,7 @@ type WishlistEntryExtended = WishlistEntry & {
 })
 export class SearchResultItemComponent {
   private preview = inject(PreviewService);
+  private videoPreview = inject(VideoPreviewService);
   private search = inject(SearchService);
   private languageService = inject(LanguageService);
   private router = inject(Router);
@@ -364,6 +366,7 @@ export class SearchResultItemComponent {
       album: 'album',
       ep: 'ep',
       single: 'track',
+      video: 'ep',
     };
 
     return map[itemType] ?? 'track';
@@ -436,6 +439,10 @@ export class SearchResultItemComponent {
     }
 
     switch (this.type()) {
+      case 'video':
+        this.videoPreview.open(this.trackItem());
+        break;
+
       case 'track':
         this.onPlayPreviewClick(this.trackItem());
         break;
@@ -454,6 +461,12 @@ export class SearchResultItemComponent {
   }
 
   onPlayPreviewClick(track: Track): void {
+    if (!track.previewUrl) {
+      if (track.uri) {
+        window.open(track.uri, '_blank', 'noopener');
+      }
+      return;
+    }
     this.onPlayClick.emit(track);
     this.onPlayPreview(track);
   }
@@ -478,6 +491,21 @@ export class SearchResultItemComponent {
       return;
     }
 
+    // A wishlist video opens in place, with the same sheet as the search.
+    if (item.type === 'video') {
+      this.videoPreview.open({
+        id: item.trackId,
+        externalId: item.externalId,
+        provider: item.provider,
+        name: item.name,
+        artists: [item.artist],
+        coverUrl: item.coverUrl,
+        type: 'video',
+        uri: item.uri ?? '',
+      });
+      return;
+    }
+
     if (this.isAlbumType(item.type)) {
       this.goToAlbum(item.trackId);
     }
@@ -488,7 +516,12 @@ export class SearchResultItemComponent {
       .getTrackPreview(entry.trackId)
       .toPromise();
 
-    if (!previewUrl) return;
+    if (!previewUrl) {
+      if (entry.uri) {
+        window.open(entry.uri, '_blank', 'noopener');
+      }
+      return;
+    }
 
     this.preview.play({
       id: entry.trackId,

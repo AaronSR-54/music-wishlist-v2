@@ -34,6 +34,7 @@ import { ReleaseItem } from '../../shared/models/release-item.model';
 import { ContextMenuPanelComponent } from '../../shared/components/context-menu-panel/context-menu-panel.component';
 import { ToastService } from '../../shared/components/toast/toast.component';
 import { ScrollMaskDirective } from '../../shared/directives/scroll-mask.directive';
+import { catalogExternalUrl } from '../../shared/utils/catalog-link';
 
 interface AlbumDetail {
   id: string;
@@ -125,6 +126,11 @@ interface AlbumDetail {
       />
 
       <div class="scroll-fade flex flex-col p-2 gap-12" appScrollMask>
+        @if (notFound() && !loading()) {
+          <div class="flex flex-col items-center gap-3 py-16 text-ink-500 dark:text-bone-500">
+            <p class="font-display text-lg">{{ t().noResults }}</p>
+          </div>
+        }
         @if (loading()) {
           <app-loading-spinner [message]="t().loadingSongs" />
         } @else if (album(); as a) {
@@ -264,6 +270,7 @@ export class AlbumComponent {
   album = signal<AlbumDetail | null>(null);
   tracks = signal<AlbumTrack[]>([]);
   loading = signal(true);
+  notFound = signal(false);
 
   private albumId = toSignal(
     this.route.paramMap.pipe(map((params) => params.get('id'))),
@@ -317,12 +324,22 @@ export class AlbumComponent {
 
   private loadAlbum(albumId: string) {
     this.loading.set(true);
+    this.notFound.set(false);
 
     this.searchSvc.getAlbum(albumId).subscribe({
       next: (albumData) => {
         if (albumData) {
-          this.album.set(albumData);
+          this.album.set({
+            ...albumData,
+            type: albumData.type as TrackType,
+          });
+        } else {
+          this.notFound.set(true);
         }
+      },
+      error: () => {
+        this.notFound.set(true);
+        this.loading.set(false);
       },
     });
 
@@ -448,7 +465,8 @@ export class AlbumComponent {
   async copyFromContextMenu(): Promise<void> {
     const menu = this.contextMenu();
     if (!menu) return;
-    const url = `https://deezer.com/track/${menu.item.id}`;
+    const url = catalogExternalUrl(menu.item);
+    if (!url) return;
     try {
       await navigator.clipboard.writeText(url);
       this.toast.success(

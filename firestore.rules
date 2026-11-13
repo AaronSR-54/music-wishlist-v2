@@ -37,6 +37,24 @@ service cloud.firestore {
         && resource.data.addedByUid == request.auth.uid;
     }
 
+    match /artist-merges/{document=**} {
+      allow read, delete: if isSignedIn()
+        && resource.data.ownerUid == request.auth.uid;
+      allow create: if isSignedIn()
+        && request.resource.data.ownerUid == request.auth.uid;
+      allow update: if isSignedIn()
+        && resource.data.ownerUid == request.auth.uid;
+    }
+
+    match /artist-images/{document=**} {
+      allow read, delete: if isSignedIn()
+        && resource.data.ownerUid == request.auth.uid;
+      allow create: if isSignedIn()
+        && request.resource.data.ownerUid == request.auth.uid;
+      allow update: if isSignedIn()
+        && resource.data.ownerUid == request.auth.uid;
+    }
+
     match /wishlist-invites/{document=**} {
       allow read: if request.auth != null && (
         request.auth.token.email == resource.data.invitedEmail ||

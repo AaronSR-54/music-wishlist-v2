@@ -1,6 +1,7 @@
 import {
   Component,
   computed,
+  effect,
   inject,
   input,
   signal,
@@ -19,6 +20,7 @@ import {
   distinctUntilChanged,
   switchMap,
   catchError,
+  combineLatest,
   of,
   tap,
   map,
@@ -30,10 +32,13 @@ import { register } from 'swiper/element/bundle';
 import { SearchService } from '../../core/api/search.service';
 import { WishlistService } from '../../core/firebase/wishlist.service';
 import { FavoriteArtistsService } from '../../core/firebase/favorite-artists.service';
+import { ArtistMergeService } from '../../core/firebase/artist-merge.service';
+import { ArtistImageService } from '../../core/firebase/artist-image.service';
 import { AuthService } from '../../core/auth/auth.service';
 import { LanguageService } from '../../core/i18n/language.service';
-import { Track, TrackType } from '../../shared/models/track.model';
+import { Track } from '../../shared/models/track.model';
 import { formatFans } from '../../shared/utils/format-fans';
+import { catalogExternalUrl } from '../../shared/utils/catalog-link';
 
 import { SearchResultItemComponent } from '../../shared/components/search-result-item/search-result-item.component';
 import { SpinnerComponent } from '../../shared/components/spinner/spinner.component';
@@ -41,6 +46,7 @@ import { ArtistCardComponent } from '../../shared/components/artist-card/artist-
 import {
   TypeFilterComponent,
   FilterType,
+  TypeFilterOption,
 } from '../../shared/components/type-filter/type-filter.component';
 import { SearchInputComponent } from '../../shared/components/search-input/search-input.component';
 import { PageHeaderComponent } from '../../shared/components/page-header/page-header.component';
@@ -49,8 +55,24 @@ import { CarouselComponent } from '../../shared/components/carousel/carousel.com
 import { ContextMenuPanelComponent } from '../../shared/components/context-menu-panel/context-menu-panel.component';
 import { ToastService } from '../../shared/components/toast/toast.component';
 import { ScrollMaskDirective } from '../../shared/directives/scroll-mask.directive';
+import { CatalogSearchFilter } from '../../shared/models/catalog-provider';
+import {
+  matchQuality,
+  rankCatalogResults,
+} from '../../core/catalog/catalog-rank';
 
 register();
+
+function sameFilters(
+  a: ReadonlySet<CatalogSearchFilter>,
+  b: ReadonlySet<CatalogSearchFilter>,
+): boolean {
+  if (a.size !== b.size) return false;
+  for (const value of a) {
+    if (!b.has(value)) return false;
+  }
+  return true;
+}
 
 @Component({
   selector: 'app-search',
@@ -175,7 +197,7 @@ register();
           />
         </div>
 
-        @if (query()) {
+        @if (query() && typeFilterOptions().length > 1) {
           <app-type-filter
             class="type-filter w-full"
             [options]="typeFilterOptions()"
@@ -232,6 +254,13 @@ register();
               [subtitle]="t().tryAnotherSearch"
             />
           }
+          @case ('error') {
+            <app-search-empty-state
+              variant="empty"
+              [title]="t().searchError"
+              [subtitle]="t().tryAnotherSearch"
+            />
+          }
           @default {
             <app-search-empty-state
               variant="idle"
@@ -279,6 +308,8 @@ export class SearchComponent implements AfterViewInit {
   private searchSvc = inject(SearchService);
   private wishlistSvc = inject(WishlistService);
   private favoriteArtistsSvc = inject(FavoriteArtistsService);
+  private artistMergeSvc = inject(ArtistMergeService);
+  private artistImageSvc = inject(ArtistImageService);
   private authSvc = inject(AuthService);
   private languageService = inject(LanguageService);
   private router = inject(Router);
@@ -293,18 +324,55 @@ export class SearchComponent implements AfterViewInit {
   contextMenu = signal<{ x: number; y: number; item: Track } | null>(null);
   inputFocused = signal(false);
 
+  constructor() {
+    this.searchSvc.loadProviders().subscribe();
+
+    // Silent filters are worse than no filters: when the provider set cannot
+    // return a type (e.g. YouTube is not configured), drop it from the current
+    // selection. Wait for the availability check so a saved videos filter is
+    // not pruned before the server answers.
+    effect(() => {
+      if (!this.searchSvc.providersReady()) return;
+
+      const supported = new Set<string>(
+        this.typeFilterOptions().map((option) => option.value),
+      );
+      const current = this.selectedTypes();
+      if (current.size === 0) return;
+
+      const pruned = new Set(
+        [...current].filter((type) => supported.has(type)),
+      );
+      if (pruned.size === current.size) return;
+
+      this.selectedTypes.set(pruned);
+      this.searchSvc.saveSearchState(this.query(), pruned, this.results());
+    });
+  }
+
   get isMobile(): boolean {
     return window.innerWidth < 1024;
   }
 
   t = computed(() => this.languageService.t());
   query = signal(this.searchSvc.getSavedSearchState()?.query || '');
-  selectedTypes = signal<Set<TrackType>>(
+  selectedTypes = signal<Set<CatalogSearchFilter>>(
     this.searchSvc.getSavedSearchState()?.selectedTypes || new Set(),
   );
   loading = signal(false);
+  searchError = signal(false);
 
-  favoriteArtists = this.favoriteArtistsSvc.artists;
+  videosAvailable = this.searchSvc.videosAvailable;
+
+  favoriteArtists = computed(() => {
+    const seen = new Set<string>();
+    return this.favoriteArtistsSvc.artists().filter((artist) => {
+      const root = this.artistMergeSvc.resolveId(artist.artistId);
+      if (seen.has(root)) return false;
+      seen.add(root);
+      return true;
+    });
+  });
 
   /**
    * The multi-browse carousel scales its large item to the container width, which makes the
@@ -327,17 +395,28 @@ export class SearchComponent implements AfterViewInit {
     }
   }
 
-  private results$ = toObservable(this.query).pipe(
+  private results$ = combineLatest([
+    toObservable(this.query),
+    toObservable(this.selectedTypes),
+  ]).pipe(
     debounceTime(300),
-    distinctUntilChanged(),
-    tap((q) => {
+    distinctUntilChanged(
+      ([previousQuery, previousTypes], [query, types]) =>
+        previousQuery === query && sameFilters(previousTypes, types),
+    ),
+    tap(([q]) => {
       if (q.trim()) this.loading.set(true);
     }),
-    switchMap((q) => {
+    switchMap(([q, types]) => {
       const trimmed = q.trim();
       if (!trimmed) return of([]);
-      return this.searchSvc.search(trimmed).pipe(
-        catchError(() => of([])),
+      return this.searchSvc.search(trimmed, types).pipe(
+        map((items) => this.withSavedArtists(items, trimmed, types)),
+        tap(() => this.searchError.set(false)),
+        catchError(() => {
+          this.searchError.set(true);
+          return of([]);
+        }),
         tap(() => this.loading.set(false)),
       );
     }),
@@ -354,28 +433,65 @@ export class SearchComponent implements AfterViewInit {
   filteredResults = computed(() => {
     const res = this.results();
     const types = this.selectedTypes();
-    if (types.size > 0) return res.filter((item) => types.has(item.type));
+    const seenArtists = new Set<string>();
     let artistCount = 0;
-    return res.filter((item) => {
+
+    // Artists merged by the user are one artist: keep only the first record of
+    // the group. Without a filter, also keep the list useful by capping them.
+    const filtered = res.filter((item) => {
       if (item.type !== 'artist') return true;
-      return ++artistCount <= 3;
+
+      const root = this.artistMergeSvc.resolveId(item.id);
+      if (seenArtists.has(root)) return false;
+      seenArtists.add(root);
+
+      if (types.size > 0) return true;
+      return ++artistCount <= 5;
     });
+
+    // Artist rows show the photo the user picked, when there is one.
+    return filtered.map((item) =>
+      item.type === 'artist'
+        ? {
+            ...item,
+            coverUrl: this.artistImageSvc.resolve(item.id, item.coverUrl),
+          }
+        : item,
+    );
   });
 
-  showTypeChip = computed(() => this.selectedTypes().size !== 1);
+  showTypeChip = computed(
+    () => this.typeFilterOptions().length > 1 && this.selectedTypes().size !== 1,
+  );
 
   state = computed(() => {
     if (this.loading()) return 'loading';
     if (!this.query().trim()) return 'idle';
+    if (this.searchError()) return 'error';
     return this.filteredResults().length > 0 ? 'results' : 'empty';
   });
 
-  typeFilterOptions = computed(() => [
-    { value: 'artist' as FilterType, label: this.t().artists },
-    { value: 'track' as FilterType, label: this.t().songs },
-    { value: 'album' as FilterType, label: this.t().albums },
-    { value: 'ep' as FilterType, label: this.t().eps },
-  ]);
+  typeFilterOptions = computed<TypeFilterOption<FilterType>[]>(() => {
+    const supported = new Set<string>(
+      this.searchSvc.capabilities().searchTypes,
+    );
+    const options: TypeFilterOption<FilterType>[] = [
+      { value: 'artist', label: this.t().artists },
+      { value: 'track', label: this.t().songs },
+      { value: 'album', label: this.t().albums },
+      { value: 'ep', label: this.t().eps },
+    ];
+    const catalogOptions = options.filter((option) =>
+      supported.has(option.value),
+    );
+
+    // Videos are one more filter, not a separate mode: selecting it runs a
+    // single YouTube search instead of the catalog calls.
+    if (this.videosAvailable()) {
+      catalogOptions.push({ value: 'video', label: this.t().videos });
+    }
+    return catalogOptions;
+  });
 
   onQuery(val: string) {
     this.query.set(val);
@@ -387,19 +503,66 @@ export class SearchComponent implements AfterViewInit {
   }
 
   toggleType(type: string) {
-    const typeVal = type as TrackType;
-    const updated = new Set(this.selectedTypes());
+    const typeVal = type as CatalogSearchFilter;
+    const updated = new Set<CatalogSearchFilter>(this.selectedTypes());
     updated.has(typeVal)
       ? updated.delete(typeVal)
       : (updated.clear(), updated.add(typeVal));
     this.selectedTypes.set(updated);
-    this.searchSvc.saveSearchState(this.query(), updated, this.results());
+  }
+
+  /**
+   * A provider's search index does not always return an artist for its own
+   * name (Deezer never returns `deezer:105607162` for "iban"), so a saved
+   * artist that matches the query is injected: if the user follows it, it must
+   * be findable. Saved artists also get a small ranking boost.
+   */
+  private withSavedArtists(
+    items: Track[],
+    query: string,
+    filters: ReadonlySet<CatalogSearchFilter>,
+  ): Track[] {
+    if (filters.size > 0 && !filters.has('artist')) return items;
+
+    const known = new Set<string>();
+    for (const item of items) {
+      if (item.type === 'artist') {
+        known.add(this.artistMergeSvc.resolveId(item.id));
+      }
+    }
+
+    const saved: Track[] = [];
+    for (const artist of this.favoriteArtistsSvc.artists()) {
+      const root = this.artistMergeSvc.resolveId(artist.artistId);
+      if (known.has(root)) continue;
+      if (matchQuality(artist.name, query) === 0) continue;
+
+      known.add(root);
+      saved.push({
+        id: artist.artistId,
+        artistId: artist.artistId,
+        provider: artist.provider,
+        name: artist.name,
+        artists: [artist.name],
+        coverUrl: this.artistImageSvc.resolve(artist.artistId, artist.image ?? ''),
+        type: 'artist',
+        uri: '',
+      });
+    }
+
+    return rankCatalogResults(
+      [...items, ...saved],
+      query,
+      this.favoriteArtistsSvc.artistIds(),
+    );
   }
 
   isAdded(id: string, type?: string): boolean {
-    return type === 'artist'
-      ? this.favoriteArtistsSvc.artistIds().has(id)
-      : this.wishlistSvc.trackIds().has(id);
+    if (type !== 'artist') return this.wishlistSvc.trackIds().has(id);
+
+    return this.artistMergeSvc
+      .groupIds(id)
+      .some((artistId) => this.favoriteArtistsSvc.artistIds().has(artistId));
   }
 
   async toggleAction(track: Track) {
@@ -407,11 +570,15 @@ export class SearchComponent implements AfterViewInit {
     if (!user) return;
 
     if (track.type === 'artist') {
+      const group = this.artistMergeSvc.groupIds(track.id);
       const existing = this.favoriteArtistsSvc
         .artists()
-        .find((a) => a.artistId === track.id);
-      if (existing?.id) {
-        await this.favoriteArtistsSvc.remove(existing.id);
+        .filter((a) => group.includes(a.artistId));
+
+      if (existing.length > 0) {
+        for (const artist of existing) {
+          if (artist.id) await this.favoriteArtistsSvc.remove(artist.id);
+        }
       } else {
         const cover = track.coverUrl || (await this.fetchArtistImage(track.id));
         await this.favoriteArtistsSvc.add(track.id, track.name, cover, user);
@@ -428,8 +595,8 @@ export class SearchComponent implements AfterViewInit {
 
   private async fetchArtistImage(id: string): Promise<string> {
     try {
-      const data: any = await this.searchSvc.getArtist(id).toPromise();
-      return data?.picture_big || data?.picture_medium || '';
+      const data = await this.searchSvc.getArtist(id).toPromise();
+      return data?.coverUrl || '';
     } catch {
       return '';
     }
@@ -470,7 +637,7 @@ export class SearchComponent implements AfterViewInit {
   async copyFromContextMenu(): Promise<void> {
     const menu = this.contextMenu();
     if (!menu) return;
-    const url = this.buildDeezerUrl(menu.item);
+    const url = catalogExternalUrl(menu.item);
     if (!url) return;
     try {
       await navigator.clipboard.writeText(url);
@@ -498,12 +665,5 @@ export class SearchComponent implements AfterViewInit {
       this.router.navigate(['/album', menu.item.albumId]);
     }
     this.closeContextMenu();
-  }
-
-  private buildDeezerUrl(item: Track): string | null {
-    if (!item.id) return null;
-    if (item.type === 'artist') return `https://deezer.com/artist/${item.id}`;
-    if (item.type === 'track') return `https://deezer.com/track/${item.id}`;
-    return `https://deezer.com/album/${item.id}`;
   }
 }
