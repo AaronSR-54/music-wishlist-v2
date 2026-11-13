@@ -41,9 +41,40 @@ Angular 20 SPA deployed on Vercel (free plan: max 12 serverless endpoints). Uses
 
 Vercel cron runs `api/check-releases` daily at 09:00 UTC.
 
+### Music catalog providers
+- Catalog access uses one provider-neutral contract in `lib/providers/` (`contract.js`, `deezer.js`, `youtube.js`, `handlers.js`, `index.js`, `preview-handler.js`, `release-monitoring.js`). Provider-specific URL building and response mapping live only there; the files in `api/` are thin wrappers.
+- **Two providers, two jobs.** Deezer is the whole searchable catalog (artists, tracks, albums, EPs) with proxied 30-second previews. YouTube only backs the **Vídeos** filter. There is no Spotify or iTunes adapter.
+- Existing catalog endpoints accept `provider` (default `deezer`) and `format=neutral`. Without `format=neutral` the Deezer response shape stays unchanged for already-installed clients; the current client always sends `format=neutral` and receives `{ provider, data }` with provider-scoped ids (`<provider>:<externalId>`).
+- `GET /api/search?providers=1` returns provider availability (`[{ id, label, available }]`) without requiring a query. It now reports only `deezer` and `youtube`.
+- **Search ranking lives in `src/app/core/catalog/catalog-rank.ts`.** Every result is scored as name-match quality + audience + saved boost: exact 20, prefix 16, every query word 13, contained 11, fuzzy 11 × similarity (threshold 0.82); audience is `log10(1 + fans) + 0.25 · log10(1 + albums)`. An exact match beats a prefix rival unless the prefix has ~10,000× the audience, so "Taylor Swift" wins for "taylor" but a niche exact artist stays first. Ties keep the provider order.
+- **Saved artists are always findable.** `SearchComponent.withSavedArtists()` injects any favorite artist whose name matches the query (Deezer's index never returns e.g. `deezer:105607162` for "iban") and gives saved ids a +2 boost. The artist search limit is 25.
+- **YouTube is one more search filter, not a separate mode.** The search tab offers Artistas / Canciones / Álbumes / EPs / Vídeos; the first four query Deezer, and `Vídeos` queries YouTube only with a single `/api/search?provider=youtube` call. Selected filters are persisted with the saved search state and YouTube results use the `video` type, so they never dedupe against the same song in the catalog. YouTube is only offered when it is available.
+- The filter row (`app-type-filter` + `app-type-chip`) is **icon-only on mobile** (<768px); only the selected chip also shows its label. Each button keeps an `aria-label` with the filter name.
+- **A search only calls the endpoints its filter needs.** `Canciones` calls `/search`, `Álbumes`/`EPs` call `/search/album` and `Artistas` calls `/search/artist`, so changing the filter fetches a fresh, type-specific result list instead of trimming the previous one. `Vídeos` is the only filter that touches YouTube (100 quota units per search), so the catalog search never spends YouTube quota.
+- **Clicking a video opens a modal with the embedded player**, not a new tab: `VideoPreviewService` creates a CDK overlay with `VideoPreviewModalComponent` (mobile bottom sheet on small screens, centered dialog on desktop) using `youtube-nocookie.com/embed/<id>`. Wishlist videos open the same sheet.
+- The sheet **autoplays** through the YouTube IFrame API (`loadYouTubeApi()` in `src/app/shared/utils/youtube-api.ts`): it plays with sound, and if the browser blocks it, retries muted and shows an "Activar sonido" button. If the API cannot load (offline/blocked), it falls back to a plain `autoplay=1` iframe.
+- YouTube uses YouTube Data API v3 with `YOUTUBE_API_KEY` and optional `YOUTUBE_REGION` (default `US`). It has no native artist/album/EP entities, so the adapter derives them: **video = track** (link to `youtube.com/watch`, no previews), **channel = artist** (`channels.list` + uploads playlist, top tracks sorted by views), **playlist = album/EP** (`playlists.list` + `playlistItems.list`, `itemCount` decides single/EP/album). Fan uploads, compilations and video collections are filtered out; only VEVO/artist/Topic playlists are trusted. A search costs 100 quota units (default 10,000/day), so YouTube searches tracks only and 100-unit calls are cached for 10 minutes per warm instance.
+- Provider capabilities live in `src/app/shared/models/catalog-provider.ts` (`searchTypes`, `previews`, `albumDetail`, `artistDetail`) plus `CATALOG_CAPABILITIES` for the catalog and `CatalogSearchFilter` for the filter row (the four catalog kinds plus `video`). `MusicCatalogService` uses them to skip endpoints a filter does not need, so a filtered search never makes calls that cannot produce its type.
+- `catalog-merge.ts` keeps distinct records returned by the same catalog (Deezer has several different artists named "Iban"); it would only collapse cross-catalog copies if another catalog were added.
+- `lib/` is not under `api/`, so shared provider code does not count against the 12-endpoint limit. Do not add provider modules under `api/`.
+- Provider tests run with `npm run test:api` (`node --test tests/providers/*.test.mjs`).
+
+### Artist merges (split Deezer profiles)
+- Deezer sometimes splits one artist into several records. A user can merge them from the artist page; merges are **per user** in `artist-merges/{doc}` (`ownerUid`, `primaryArtistId`, `aliasArtistId`, `primaryName`, `aliasName`). `ArtistMergeService` keeps groups flat (alias → primary, never chains).
+- The artist page opens a merge sheet (`artist-merge-picker`) that searches artists **or accepts a Deezer artist URL/id**: the duplicate is often missing from Deezer's own search index. The artist being viewed stays primary.
+- The artist page loads the union of the group's top tracks and releases; an alias route redirects to the primary. Favorites and search dedupe by merge root (one card/row per artist), and the heart represents the whole group.
+- Releases expands every favorite to its whole merge group before querying; `api/check-releases.js` reads `artist-merges` and uses `expandFavoriteArtists()` so the daily push covers all aliases.
+- Demo mode stores merges in `artist-merges-demo-user`. Firestore rules only allow the owner (`ownerUid`) to read/write, and account deletion removes them.
+
+### Artist photo overrides
+- The artist picture can be replaced per user from the artist page (pencil button on the cover): upload a photo from the device (resized in the browser to a 600px JPEG data URL) or paste an image URL.
+- Overrides live in `artist-images/{uid}_{provider}_{externalId}` (`ownerUid`, `artistId`, `image`, `updatedAt`); demo mode uses `artist-images-demo-user`.
+- `ArtistImageService.resolve(artistId, fallback)` is the single read path: artist page, favorite artist cards and search artist rows all prefer the override. Firestore rules are owner-only and account deletion removes the documents.
+- Photos are stored in Firestore (not a bucket): `imageFileToDataUrl()` in `src/app/shared/utils/image-file.ts` keeps them around 30-80 kB, well below the 1 MiB document limit.
+
 ### Backend integrations
 - **Deezer API** — proxied via `/api/search?q=&type=track|album`
-- **Firebase** — Auth (Google Sign-In) + Firestore (`wishlist`, `wishlist-shares`, `wishlist-invites`, `favorite-artists`, `push-subscriptions`)
+- **Firebase** — Auth (Google Sign-In) + Firestore (`wishlist`, `wishlist-shares`, `wishlist-invites`, `favorite-artists`, `artist-merges`, `artist-images`, `push-subscriptions`)
 
 ### Auth flow
 `AuthService` has two modes:
@@ -65,6 +96,7 @@ On auth effect, initializes: `WishlistService`, `FavoriteArtistsService`, `Wishl
 - Avoid `firebase-admin` SDK in endpoints (gRPC/OpenSSL issues on Vercel). Use Firestore REST API directly with Firebase ID token auth or service account OAuth2.
 - **`api/push.js`** handles 4 actions: `subscribe`, `unsubscribe`, `test`, `notify-downloaded`. Native sends use `FIREBASE_CLIENT_EMAIL` + `FIREBASE_PRIVATE_KEY` (service account OAuth2, scope `cloud-platform`) for FCM; web sends use `web-push`. No new endpoint needed.
 - `api/check-releases.js` sends release notifications to both transports.
+- Release monitoring is provider-aware: each favorite artist's `artistId` is parsed into a provider (bare ids default to Deezer), the matching adapter lists its albums, and a failure for one artist/provider is logged and skipped without aborting the run. The release cache stores external album ids (so legacy Deezer caches keep matching), while push payloads carry the provider-scoped `albumId` (`<provider>:<externalId>`) plus `provider` so notification actions open the correct album route.
 - `WishlistService.markDownloaded(entry)` takes full `WishlistEntry` and auto-sends push to the owner if `entry.addedByUid !== currentUser.uid`.
 
 ### State management
@@ -95,10 +127,18 @@ Angular signals throughout (no NgRx):
 |------|---------|
 | `src/app/core/auth/` | Auth service + guard |
 | `src/app/core/api/search.service.ts` | Deezer search + album/artist/track/preview API calls |
+| `src/app/core/catalog/` | Provider-neutral catalog layer: provider registry/selection, neutral models, id helpers and `MusicCatalogService` (search, details, tracks, previews, caches) |
+| `src/app/shared/models/catalog-provider.ts` | Provider ids/labels, merge order, search filters (catalog kinds + video) and per-provider capabilities |
+| `src/app/core/catalog/catalog-merge.ts` | Cross-provider dedupe: identity key, name normalization and fill-missing merge |
+| `lib/providers/` | Server provider adapters shared by the existing `/api/*` functions (contract, Deezer, YouTube, handlers, preview handler, release monitoring). Not under `api/`, so it does not count as an endpoint |
 | `src/app/core/firebase/wishlist.service.ts` | Firestore CRUD + shared entries merge + push on download |
 | `src/app/core/firebase/wishlist-share.service.ts` | Wishlist sharing + batch sharedWith update |
 | `src/app/core/firebase/wishlist-invite.service.ts` | Wishlist invite management |
 | `src/app/core/firebase/favorite-artists.service.ts` | Favorite artists CRUD with Deezer image enrichment |
+| `src/app/core/firebase/artist-merge.service.ts` | Per-user artist merge groups (alias → primary), demo storage and group resolution |
+| `src/app/core/firebase/artist-image.service.ts` | Per-user artist photo overrides, demo storage and fallback resolution |
+| `src/app/shared/components/artist-merge-picker/artist-merge-picker.component.ts` | Merge sheet: artist search + Deezer URL/id input |
+| `src/app/shared/components/artist-photo-editor/artist-photo-editor.component.ts` | Photo sheet: device upload (resized) or image URL + reset |
 | `src/app/core/services/push-notification.service.ts` | Device push registration (Web Push + native FCM) |
 | `src/app/core/native/native-shell.service.ts` | Native shell: back button, deep links, notification taps, status bar |
 | `android/app/src/main/java/com/musicwishlist/app/ReleaseMessagingService.java` | Native rich release notifications, artwork, and wishlist/view actions |
@@ -151,7 +191,7 @@ Angular signals throughout (no NgRx):
 | `**` | redirect to `/` | — |
 
 ## Conventions
-- All SVGs via `icon.component.ts` + `icon-registry.ts` (27 icons) — never inline SVG
+- All SVGs via `icon.component.ts` + `icon-registry.ts` (34 icons) — never inline SVG
 - Tailwind CSS only for styles, design tokens in `src/styles.css` `@theme` block
 - I18n: `LanguageService.t()` returns a `computed()` with translations
 - `ToastService` for success/error toasts
