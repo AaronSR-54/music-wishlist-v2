@@ -200,6 +200,7 @@ Angular signals throughout (no NgRx):
 - Long-lived subscriptions use `takeUntilDestroyed()`
 - **Vercel free plan constraint**: max 12 serverless API endpoints. Add logic to existing endpoints rather than creating new files.
 - Custom animations in `src/styles.css` (16 keyframe animations) + `src/app/shared/animations/animations.ts`
+- `app-carousel` (`CarouselComponent`) only calls `setPointerCapture` after the pointer moves past a small threshold: capturing on `pointerdown` retargets the click to the viewport and silently swallows taps on the cards it contains (favorite artists could not be opened).
 - `swiper` library for horizontal scroll/carousel (`HorizontalScrollComponent`)
 - `FloatingPlayerComponent` shown when `PreviewService` has an active preview
 - Service worker caches same-origin GET requests (cache-first), posts `NEW_VERSION_AVAILABLE` on activate

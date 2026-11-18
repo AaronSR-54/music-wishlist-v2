@@ -134,6 +134,21 @@ export class CarouselComponent implements AfterViewInit, OnDestroy {
   private lastPointerTime = 0;
   private velocity = 0;
   private dragging = false;
+  private captured = false;
+
+  /**
+   * Pointer capture retargets the click to the viewport, so it must not be
+   * taken on pointerdown: that silently swallowed every tap on the cards
+   * inside the carousel (favorite artists could never be opened). It is taken
+   * only once the pointer actually moves, which keeps taps clickable and drags
+   * tracked.
+   */
+  private static readonly DRAG_THRESHOLD = 6;
+
+  private readonly blockClickAfterDrag = (event: MouseEvent) => {
+    event.preventDefault();
+    event.stopPropagation();
+  };
 
   private readonly onWheel = (event: WheelEvent) => this.handleWheel(event);
   private readonly onPointerDown = (event: PointerEvent) => this.handlePointerDown(event);
@@ -795,13 +810,24 @@ export class CarouselComponent implements AfterViewInit, OnDestroy {
     this.lastPointerTime = performance.now();
     this.velocity = 0;
     this.dragging = true;
-    this.viewport.classList.add('is-dragging');
+    this.captured = false;
     cancelAnimationFrame(this.rafId);
-    this.viewport.setPointerCapture(event.pointerId);
   }
 
   private handlePointerMove(event: PointerEvent): void {
     if (!this.dragging || this.pointerId !== event.pointerId) return;
+
+    if (!this.captured) {
+      if (
+        Math.abs(event.clientX - this.pointerStartX) <
+        CarouselComponent.DRAG_THRESHOLD
+      ) {
+        return;
+      }
+      this.captured = true;
+      this.viewport.classList.add('is-dragging');
+      this.viewport.setPointerCapture(event.pointerId);
+    }
 
     const now = performance.now();
     const dx = event.clientX - this.lastPointerX;
@@ -826,6 +852,23 @@ export class CarouselComponent implements AfterViewInit, OnDestroy {
     if (this.viewport.hasPointerCapture(event.pointerId)) {
       this.viewport.releasePointerCapture(event.pointerId);
     }
+
+    // A tap never captured the pointer: let its click reach the card.
+    if (!this.captured) return;
+    this.captured = false;
+
+    // The drag ended; swallow the click it may still produce so a card is not
+    // opened after scrolling the carousel.
+    this.viewport.addEventListener('click', this.blockClickAfterDrag, {
+      capture: true,
+      once: true,
+    });
+    setTimeout(
+      () =>
+        this.viewport.removeEventListener('click', this.blockClickAfterDrag, true),
+      350,
+    );
+
     this.snapToNearest(this.velocity);
   }
 
