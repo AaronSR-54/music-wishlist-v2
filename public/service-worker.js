@@ -72,7 +72,7 @@ self.addEventListener('fetch', (event) => {
     event.respondWith(
       fetch(request)
         .then((response) => {
-          if (isShell) {
+          if (isShell && response.ok) {
             const copy = response.clone();
             caches
               .open(CACHE_NAME)
@@ -84,7 +84,8 @@ self.addEventListener('fetch', (event) => {
         .catch(() =>
           caches
             .match(OFFLINE_URL)
-            .then((cached) => cached || Response.error()),
+            .then((cached) => cached || Response.error())
+            .catch(() => Response.error()),
         ),
     );
     return;
@@ -96,13 +97,19 @@ self.addEventListener('fetch', (event) => {
       cache.match(request).then((cached) => {
         const network = fetch(request)
           .then((response) => {
-            if (response.ok) cache.put(request, response.clone());
+            if (response.ok) {
+              cache.put(request, response.clone()).catch(() => {});
+            }
             return response;
           })
-          .catch(() => cached);
-        return cached || network;
+          .catch(() => undefined);
+        // A failed request with no cache match must still resolve to a
+        // Response: `respondWith(undefined)` throws "Failed to convert value
+        // to 'Response'" (an uncontrolled rejection, e.g. for an aborted or
+        // offline request).
+        return cached || network.then((response) => response || Response.error());
       }),
-    ),
+    ).catch(() => Response.error()),
   );
 });
 
