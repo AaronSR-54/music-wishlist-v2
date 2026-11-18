@@ -272,7 +272,9 @@ export class MusicCatalogService {
     const externalId = this.externalIdOf(artistId);
 
     return this.envelope<CatalogAlbumInfo[]>(
-      `/artist-albums?id=${encodeURIComponent(externalId)}&limit=100`,
+      `/artist-albums?id=${encodeURIComponent(externalId)}&limit=100${
+        artistName ? `&name=${encodeURIComponent(artistName)}` : ''
+      }`,
       provider,
     ).pipe(
       switchMap((response) => {

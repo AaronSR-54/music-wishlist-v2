@@ -93,6 +93,133 @@ test('searchTracks maps the Deezer data array', async () => {
   }
 });
 
+test('getArtistAlbums fills an incomplete artist album list from the album search', async () => {
+  const originalFetch = globalThis.fetch;
+  const requested = [];
+  globalThis.fetch = async (url) => {
+    requested.push(String(url));
+    if (String(url).includes('/artist/7201/albums')) {
+      return {
+        ok: true,
+        json: async () => ({
+          data: [
+            {
+              id: 1,
+              title: 'Known',
+              record_type: 'album',
+              release_date: '2010-01-01',
+              artist: { id: 7201, name: 'SFDK' },
+            },
+          ],
+        }),
+      };
+    }
+
+    return {
+      ok: true,
+      json: async () => ({
+        data: [
+          {
+            id: 1,
+            title: 'Known',
+            record_type: 'album',
+            release_date: '2010-01-01',
+            artist: { id: 7201, name: 'SFDK' },
+          },
+          {
+            id: 2,
+            title: 'Inkebrantable',
+            record_type: 'album',
+            release_date: '2023-03-10',
+            artist: { id: 7201, name: 'SFDK' },
+          },
+          {
+            id: 3,
+            title: 'Someone else',
+            record_type: 'album',
+            release_date: '2024-01-01',
+            artist: { id: 999, name: 'Other' },
+          },
+        ],
+      }),
+    };
+  };
+
+  try {
+    const albums = await deezerAdapter.getArtistAlbums('7201', 100, {
+      name: 'SFDK',
+    });
+
+    assert.equal(requested.length, 2);
+    assert.match(requested[1], /search\/album\?q=artist%3A%22SFDK%22/);
+    assert.deepEqual(
+      albums.map((album) => album.name),
+      ['Inkebrantable', 'Known'],
+    );
+    assert.equal(albums.find((album) => album.name === 'Inkebrantable').id, 'deezer:2');
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
+test('getArtistAlbums skips the extra search without a name and when it fails', async () => {
+  const originalFetch = globalThis.fetch;
+  let calls = 0;
+
+  globalThis.fetch = async () => {
+    calls += 1;
+    return {
+      ok: true,
+      json: async () => ({
+        data: [
+          {
+            id: 1,
+            title: 'Only',
+            record_type: 'album',
+            artist: { id: 7201, name: 'SFDK' },
+          },
+        ],
+      }),
+    };
+  };
+
+  try {
+    const withoutName = await deezerAdapter.getArtistAlbums('7201', 100);
+    assert.equal(calls, 1);
+    assert.equal(withoutName.length, 1);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+
+  globalThis.fetch = async (url) => {
+    if (String(url).includes('/search/album')) {
+      return { ok: false, status: 500, json: async () => ({}) };
+    }
+    return {
+      ok: true,
+      json: async () => ({
+        data: [
+          {
+            id: 1,
+            title: 'Only',
+            record_type: 'album',
+            artist: { id: 7201, name: 'SFDK' },
+          },
+        ],
+      }),
+    };
+  };
+
+  try {
+    const fallback = await deezerAdapter.getArtistAlbums('7201', 100, {
+      name: 'SFDK',
+    });
+    assert.equal(fallback.length, 1);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
 test('an upstream Deezer error becomes a ProviderError', async () => {
   const originalFetch = globalThis.fetch;
   globalThis.fetch = async () => ({

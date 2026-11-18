@@ -81,7 +81,7 @@ type Tab = 'releases' | 'search' | 'wishlist';
       </div>
 
       <main
-        class="desktop-container z-10 flex flex-1 gap-16 p-3 lg:pl-[68px] min-[1400px]:pl-3"
+        class="desktop-container z-10 flex flex-1 min-h-0 gap-16 p-3 lg:pl-[68px] min-[1400px]:pl-3"
       >
         <aside class="mt-60 w-[300px] flex flex-col items-start">
           <app-segmented-tabs
@@ -129,7 +129,7 @@ type Tab = 'releases' | 'search' | 'wishlist';
       <app-header class="z-10" (openProfile)="goToProfile()" />
 
       <main
-        class="z-10 mobile-content flex-1 overflow-hidden px-4"
+        class="z-10 mobile-content flex-1 min-h-0 overflow-hidden px-4"
         [class.has-preview]="hasActivePreview()"
       >
         @if (hasChildRoute()) {

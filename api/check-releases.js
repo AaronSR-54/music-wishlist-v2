@@ -320,10 +320,12 @@ function fromValue(v) {
 // up a release on its next run. Sent album IDs are deduplicated per user below.
 const RELEASE_WINDOW_DAYS = Number(process.env.RELEASE_WINDOW_DAYS ?? 2);
 
-async function fetchArtistAlbums(artistId) {
+async function fetchArtistAlbums(artistId, artistName) {
   const { provider: providerId, externalId } = artistIdentity(artistId);
   const provider = getProvider(providerId);
-  const albums = await provider.getArtistAlbums(externalId, 50);
+  const albums = await provider.getArtistAlbums(externalId, 50, {
+    name: artistName,
+  });
   return albums.map(toLegacyAlbum);
 }
 
@@ -399,7 +401,7 @@ async function run(uid, idToken, clientId) {
     async (favorite) => {
       let albums;
       try {
-        albums = await fetchArtistAlbums(favorite.artistId);
+        albums = await fetchArtistAlbums(favorite.artistId, favorite.name);
       } catch (error) {
         console.error(
           `[check-releases] Release fetch failed for artist ${favorite.artistId}: ${error.message}`,
