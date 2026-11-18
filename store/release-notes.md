@@ -1,8 +1,8 @@
 <es-ES>
-Novedades de la 0.34.3:
-• Corregido un error de la consola al abrir ciertas pantallas con la app instalada: el service worker ya no falla cuando una petición se cancela o no tiene copia en caché.
+Novedades de la 0.34.4:
+• La app instalada ya no muestra una petición fallida a la raíz del sitio: el service worker sirve la portada desde caché también cuando el navegador la pide sin ser una navegación.
 </es-ES>
 <en-US>
-What's new in 0.34.3:
-• Fixed a console error when opening certain screens with the installed app: the service worker no longer fails when a request is cancelled or has no cached copy.
+What's new in 0.34.4:
+• The installed app no longer shows a failed request to the site root: the service worker serves the shell from cache even when the browser asks for it without a navigation.
 </en-US>
