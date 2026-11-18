@@ -60,7 +60,11 @@ import { catalogExternalUrl } from '../../shared/utils/catalog-link';
     .releases-grid {
       min-width: 0;
       display: grid;
-      grid-template-columns: repeat(2, minmax(0, 1fr));
+      /* Fill the row with as many readable cards as fit instead of a fixed
+         column count: a fixed ladder left the cards huge (328-428px) on
+         tablets and 234-279px on laptops, because the count only changed at
+         1024/1624/1900px while the container kept growing. */
+      grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
       grid-template-rows: max-content;
       gap: 8px;
       overflow: auto;
@@ -73,19 +77,14 @@ import { catalogExternalUrl } from '../../shared/utils/catalog-link';
     .releases-grid::-webkit-scrollbar {
       display: none;
     }
-    @media (min-width: 1024px) and (max-width: 1623px) {
+    @media (min-width: 768px) {
       .releases-grid {
-        grid-template-columns: repeat(3, minmax(0, 1fr));
+        grid-template-columns: repeat(auto-fill, minmax(145px, 1fr));
       }
     }
-    @media (min-width: 1624px) and (max-width: 1899px) {
+    @media (min-width: 1024px) {
       .releases-grid {
-        grid-template-columns: repeat(4, minmax(0, 1fr));
-      }
-    }
-    @media (min-width: 1900px) {
-      .releases-grid {
-        grid-template-columns: repeat(5, minmax(0, 1fr));
+        grid-template-columns: repeat(auto-fill, minmax(155px, 1fr));
       }
     }
   `,
