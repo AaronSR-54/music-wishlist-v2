@@ -92,13 +92,18 @@ self.addEventListener('fetch', (event) => {
   }
 
   // Static assets: cache-first with background revalidation.
+  // The manifest `start_url` can arrive as a plain fetch instead of a
+  // navigation (browsers and installed apps prefetch it), so it is served from
+  // the cached shell like a document.
+  const cacheKey = url.pathname === '/' ? OFFLINE_URL : request;
+
   event.respondWith(
     caches.open(CACHE_NAME).then((cache) =>
-      cache.match(request).then((cached) => {
+      cache.match(cacheKey).then((cached) => {
         const network = fetch(request)
           .then((response) => {
             if (response.ok) {
-              cache.put(request, response.clone()).catch(() => {});
+              cache.put(cacheKey, response.clone()).catch(() => {});
             }
             return response;
           })
