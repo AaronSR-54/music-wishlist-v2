@@ -274,7 +274,7 @@ export class MusicCatalogService {
     return this.envelope<CatalogAlbumInfo[]>(
       `/artist-albums?id=${encodeURIComponent(externalId)}&limit=100${
         artistName ? `&name=${encodeURIComponent(artistName)}` : ''
-      }`,
+      }&dates=1`,
       provider,
     ).pipe(
       switchMap((response) => {

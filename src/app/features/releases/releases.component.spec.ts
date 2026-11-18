@@ -103,7 +103,7 @@ describe('ReleasesComponent', () => {
     await new Promise((resolve) => setTimeout(resolve));
 
     expect(calledUrls()).toContain(
-      'https://music-wishlist-v2.vercel.app/api/artist-albums?id=42&limit=100&name=A&provider=deezer&format=neutral',
+      'https://music-wishlist-v2.vercel.app/api/artist-albums?id=42&limit=100&name=A&dates=1&provider=deezer&format=neutral',
     );
     expect(calledUrls()).toContain(
       'https://music-wishlist-v2.vercel.app/api/album-tracks?id=1&provider=deezer&format=neutral',
@@ -119,7 +119,7 @@ describe('ReleasesComponent', () => {
     await new Promise((resolve) => setTimeout(resolve));
 
     expect(calledUrls()).toContain(
-      '/api/artist-albums?id=42&limit=100&name=A&provider=deezer&format=neutral',
+      '/api/artist-albums?id=42&limit=100&name=A&dates=1&provider=deezer&format=neutral',
     );
   });
 });

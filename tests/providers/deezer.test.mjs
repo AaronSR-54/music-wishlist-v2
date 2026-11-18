@@ -220,6 +220,124 @@ test('getArtistAlbums skips the extra search without a name and when it fails', 
   }
 });
 
+test('getArtistAlbums restores release dates so the merged discography is ordered', async () => {
+  const originalFetch = globalThis.fetch;
+  const requested = [];
+
+  globalThis.fetch = async (url) => {
+    const href = String(url);
+    requested.push(href);
+
+    if (href.includes('/artist/9001/albums')) {
+      return {
+        ok: true,
+        json: async () => ({
+          data: [
+            {
+              id: 101,
+              title: 'Endpoint album',
+              record_type: 'album',
+              release_date: '2010-01-01',
+              artist: { id: 9001, name: 'Test' },
+            },
+          ],
+        }),
+      };
+    }
+
+    if (href.includes('/search/album')) {
+      return {
+        ok: true,
+        json: async () => ({
+          data: [
+            {
+              id: 102,
+              title: 'Newest',
+              record_type: 'album',
+              artist: { id: 9001, name: 'Test' },
+            },
+            {
+              id: 103,
+              title: 'Middle',
+              record_type: 'album',
+              artist: { id: 9001, name: 'Test' },
+            },
+          ],
+        }),
+      };
+    }
+
+    // Album detail lookups.
+    const id = href.match(/\/album\/(\d+)/)?.[1];
+    const dates = { 102: '2023-03-10', 103: '2015-05-05' };
+    return {
+      ok: true,
+      json: async () => ({ id: Number(id), release_date: dates[id] }),
+    };
+  };
+
+  try {
+    const albums = await deezerAdapter.getArtistAlbums('9001', 100, {
+      name: 'Test',
+      dates: true,
+    });
+
+    assert.deepEqual(
+      albums.map((album) => album.name),
+      ['Newest', 'Middle', 'Endpoint album'],
+    );
+    assert.deepEqual(
+      albums.map((album) => album.releaseDate),
+      ['2023-03-10', '2015-05-05', '2010-01-01'],
+    );
+    // artist albums + search + only the two albums missing a date.
+    assert.equal(requested.length, 4);
+    assert.equal(albums.length, 3);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
+test('getArtistAlbums keeps undated albums when a detail lookup fails', async () => {
+  const originalFetch = globalThis.fetch;
+
+  globalThis.fetch = async (url) => {
+    const href = String(url);
+    if (href.includes('/artist/9100/albums')) {
+      return { ok: true, json: async () => ({ data: [] }) };
+    }
+    if (href.includes('/search/album')) {
+      return {
+        ok: true,
+        json: async () => ({
+          data: [
+            {
+              id: 201,
+              title: 'Undated',
+              record_type: 'album',
+              artist: { id: 9100, name: 'Broken' },
+            },
+          ],
+        }),
+      };
+    }
+    return { ok: false, status: 500, json: async () => ({}) };
+  };
+
+  try {
+    const albums = await deezerAdapter.getArtistAlbums('9100', 100, {
+      name: 'Broken',
+      dates: true,
+    });
+
+    assert.equal(albums.length, 1);
+    assert.equal(albums[0].name, 'Undated');
+    assert.equal(albums[0].releaseDate, undefined);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
 test('an upstream Deezer error becomes a ProviderError', async () => {
   const originalFetch = globalThis.fetch;
   globalThis.fetch = async () => ({

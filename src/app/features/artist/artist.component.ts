@@ -218,10 +218,10 @@ import { ArtistPhotoEditorComponent } from '../../shared/components/artist-photo
                     >
                   </span>
                 }
-                @if (a.albumCount !== undefined) {
+                @if (albumTotal() !== undefined) {
                   <span class="flex items-baseline gap-[2px]">
                     <span class="text-xs lg:text-sm font-bold">{{
-                      a.albumCount
+                      albumTotal()
                     }}</span>
                     <span
                       class="font-display italic text-[0.6875rem] lg:text-sm text-ink-700 dark:text-bone-700 uppercase tracking-[0.5px]"
@@ -475,6 +475,21 @@ export class ArtistComponent implements OnInit {
   );
 
   allReleasesForExport = computed(() => this.releaseSections().flatMap((s) => s.items));
+
+  /**
+   * Deezer's `nb_album` only counts the releases its (sometimes incomplete)
+   * artist album list knows about, so the loaded discography wins once it
+   * arrives. `undefined` hides the stat instead of showing a wrong number.
+   */
+  albumTotal = computed<number | undefined>(() => {
+    if (this.loadingReleases()) return undefined;
+
+    const albums = this.albums().length;
+    if (albums > 0) return albums;
+
+    const hasOtherReleases = this.eps().length > 0 || this.singles().length > 0;
+    return hasOtherReleases ? 0 : this.artist()?.albumCount;
+  });
 
   private mergedAliases = computed(() => {
     const current = this.artist();
