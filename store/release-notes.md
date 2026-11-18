@@ -1,12 +1,8 @@
 <es-ES>
-Novedades de la 0.34.2:
-• Las discografías completas vuelven a ordenarse de más reciente a más antigua y muestran su año.
-• El total de álbumes del artista ahora coincide con los álbumes listados.
-• Los lanzamientos recuperados desde el catálogo también aparecen en la pestaña Lanzamientos.
+Novedades de la 0.34.3:
+• Corregido un error de la consola al abrir ciertas pantallas con la app instalada: el service worker ya no falla cuando una petición se cancela o no tiene copia en caché.
 </es-ES>
 <en-US>
-What's new in 0.34.2:
-• Complete discographies are ordered newest to oldest again and show their year.
-• The artist album total now matches the albums actually listed.
-• Releases recovered from the catalog now appear in the Releases tab too.
+What's new in 0.34.3:
+• Fixed a console error when opening certain screens with the installed app: the service worker no longer fails when a request is cancelled or has no cached copy.
 </en-US>
